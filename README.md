@@ -1,5 +1,5 @@
 [README.md](https://github.com/user-attachments/files/29631134/README.md)
-# Meowdoku
+# Nekodoku
 
 Meowdoku is a cozy cat-themed logic puzzle where each board hides playful cats. Use clues from rows, columns, colored regions, and neighboring cells to mark impossible spaces, reveal the right cats, and solve each level before your hearts run out.
 
