@@ -27,9 +27,3 @@ Current prototype features include:
 - Three-heart mistake system
 - Undo and restart controls
 - Early tutorial guidance
-
-## License
-
-This project is licensed for personal, educational, testing, and other non-commercial use only.
-
-Commercial use is not allowed without prior written permission from the copyright holder. This includes selling, monetizing, publishing as a paid product, using in advertisements, bundling with paid services, or using the source, builds, assets, name, or documentation in any commercial product.
