@@ -1,3 +1,4 @@
+[README.md](https://github.com/user-attachments/files/29631134/README.md)
 # Meowdoku
 
 Meowdoku is a cozy cat-themed logic puzzle where each board hides playful cats. Use clues from rows, columns, colored regions, and neighboring cells to mark impossible spaces, reveal the right cats, and solve each level before your hearts run out.
@@ -32,5 +33,3 @@ Current prototype features include:
 This project is licensed for personal, educational, testing, and other non-commercial use only.
 
 Commercial use is not allowed without prior written permission from the copyright holder. This includes selling, monetizing, publishing as a paid product, using in advertisements, bundling with paid services, or using the source, builds, assets, name, or documentation in any commercial product.
-
-See [LICENSE.md](LICENSE.md) for the full license terms.
