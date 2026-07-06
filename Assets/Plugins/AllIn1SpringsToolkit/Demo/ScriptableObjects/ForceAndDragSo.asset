@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f158772fbfa14aa4dbf3f2765208ac60, type: 3}
+  m_Name: ForceAndDragSo
+  m_EditorClassIdentifier: JuicyCodeSpringsDemo:JuicyCodeSprings.Demo.Scripts:DemoElementSo
+  demoElement: {fileID: 2656677919263230273, guid: 5eb7acc0ed4c54841981bab7e1327f3b,
+    type: 3}
+  description: Adjust the sliders to observe how Force and Drag influence the TransformSpringComponent
+    of the Robot. Force determines the speed and responsiveness of the Robot's movement,
+    while Drag controls the stability and smoothness of the animation. Experiment
+    with different combinations to achieve the desired spring-like behavior.
+  is3d: 1
+  buttonPrefabOf3dElement: {fileID: 6701876184648473138, guid: 54f0cbf5801dcfe42a101d185c783ff5,
+    type: 3}

@@ -1,0 +1,66 @@
+{
+    "formatVersion": 1,
+    "id": "075_cozy-drift",
+    "title": "Cozy Drift",
+    "size": 8,
+    "regions": [
+        "43355555",
+        "44357005",
+        "66557000",
+        "66677000",
+        "66777710",
+        "61171710",
+        "62111110",
+        "22222222"
+    ],
+    "cats": [
+        {
+            "row": 0,
+            "column": 2,
+            "letter": "K",
+            "locked": false
+        },
+        {
+            "row": 1,
+            "column": 0,
+            "letter": "E",
+            "locked": false
+        },
+        {
+            "row": 2,
+            "column": 3,
+            "letter": "Y",
+            "locked": false
+        },
+        {
+            "row": 3,
+            "column": 1,
+            "letter": "B",
+            "locked": false
+        },
+        {
+            "row": 4,
+            "column": 5,
+            "letter": "O",
+            "locked": false
+        },
+        {
+            "row": 5,
+            "column": 7,
+            "letter": "A",
+            "locked": false
+        },
+        {
+            "row": 6,
+            "column": 4,
+            "letter": "R",
+            "locked": false
+        },
+        {
+            "row": 7,
+            "column": 6,
+            "letter": "D",
+            "locked": false
+        }
+    ]
+}

@@ -1,0 +1,14 @@
+﻿fileFormatVersion: 2
+guid: 93ab9aa3a69545148fe927e0a62a8a46
+AssemblyDefinitionImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 356424
+  packageName: Audio Tools
+  packageVersion: 1.0
+  assetPath: Assets/AudioTools/Editor/ThirdParty/EditorAudioUtils/Scripts/Editor/AudioTool.JD.EditorAudioUtils.Editor.asmdef
+  uploadId: 851964

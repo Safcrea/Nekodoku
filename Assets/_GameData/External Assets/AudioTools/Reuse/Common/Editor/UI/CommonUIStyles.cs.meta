@@ -1,0 +1,18 @@
+﻿fileFormatVersion: 2
+guid: eec3aa8506b44c798908a33bde50de24
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 356424
+  packageName: Audio Tools
+  packageVersion: 1.0
+  assetPath: Assets/AudioTools/Reuse/Common/Editor/UI/CommonUIStyles.cs
+  uploadId: 851964

@@ -1,0 +1,59 @@
+{
+    "formatVersion": 1,
+    "id": "047_bright-nook",
+    "title": "Bright Nook",
+    "size": 7,
+    "regions": [
+        "6333333",
+        "6663333",
+        "1666633",
+        "1555663",
+        "1004623",
+        "0004422",
+        "0004222"
+    ],
+    "cats": [
+        {
+            "row": 0,
+            "column": 5,
+            "letter": "C",
+            "locked": true
+        },
+        {
+            "row": 1,
+            "column": 2,
+            "letter": "O",
+            "locked": false
+        },
+        {
+            "row": 2,
+            "column": 0,
+            "letter": "U",
+            "locked": false
+        },
+        {
+            "row": 3,
+            "column": 3,
+            "letter": "N",
+            "locked": false
+        },
+        {
+            "row": 4,
+            "column": 1,
+            "letter": "T",
+            "locked": false
+        },
+        {
+            "row": 5,
+            "column": 4,
+            "letter": "R",
+            "locked": false
+        },
+        {
+            "row": 6,
+            "column": 6,
+            "letter": "Y",
+            "locked": false
+        }
+    ]
+}

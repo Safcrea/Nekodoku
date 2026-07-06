@@ -1,0 +1,73 @@
+{
+    "formatVersion": 1,
+    "id": "098_sunny-path",
+    "title": "Sunny Path",
+    "size": 9,
+    "regions": [
+        "554411887",
+        "554411887",
+        "544411888",
+        "544411888",
+        "544311888",
+        "544221888",
+        "544221888",
+        "644221888",
+        "644220088"
+    ],
+    "cats": [
+        {
+            "row": 0,
+            "column": 1,
+            "letter": "T",
+            "locked": false
+        },
+        {
+            "row": 1,
+            "column": 8,
+            "letter": "E",
+            "locked": false
+        },
+        {
+            "row": 2,
+            "column": 2,
+            "letter": "L",
+            "locked": false
+        },
+        {
+            "row": 3,
+            "column": 5,
+            "letter": "E",
+            "locked": false
+        },
+        {
+            "row": 4,
+            "column": 3,
+            "letter": "P",
+            "locked": false
+        },
+        {
+            "row": 5,
+            "column": 7,
+            "letter": "H",
+            "locked": false
+        },
+        {
+            "row": 6,
+            "column": 4,
+            "letter": "O",
+            "locked": false
+        },
+        {
+            "row": 7,
+            "column": 0,
+            "letter": "N",
+            "locked": false
+        },
+        {
+            "row": 8,
+            "column": 6,
+            "letter": "E",
+            "locked": false
+        }
+    ]
+}

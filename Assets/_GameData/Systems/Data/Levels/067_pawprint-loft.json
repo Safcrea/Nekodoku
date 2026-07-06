@@ -1,0 +1,66 @@
+{
+    "formatVersion": 1,
+    "id": "067_pawprint-loft",
+    "title": "Pawprint Loft",
+    "size": 8,
+    "regions": [
+        "22777777",
+        "27777700",
+        "22111100",
+        "32221104",
+        "33224144",
+        "66624444",
+        "66544444",
+        "66664444"
+    ],
+    "cats": [
+        {
+            "row": 0,
+            "column": 4,
+            "letter": "M",
+            "locked": false
+        },
+        {
+            "row": 1,
+            "column": 7,
+            "letter": "O",
+            "locked": false
+        },
+        {
+            "row": 2,
+            "column": 5,
+            "letter": "U",
+            "locked": false
+        },
+        {
+            "row": 3,
+            "column": 3,
+            "letter": "N",
+            "locked": false
+        },
+        {
+            "row": 4,
+            "column": 1,
+            "letter": "T",
+            "locked": false
+        },
+        {
+            "row": 5,
+            "column": 6,
+            "letter": "A",
+            "locked": false
+        },
+        {
+            "row": 6,
+            "column": 2,
+            "letter": "I",
+            "locked": false
+        },
+        {
+            "row": 7,
+            "column": 0,
+            "letter": "N",
+            "locked": false
+        }
+    ]
+}

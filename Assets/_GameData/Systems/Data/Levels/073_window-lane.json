@@ -1,0 +1,66 @@
+{
+    "formatVersion": 1,
+    "id": "073_window-lane",
+    "title": "Window Lane",
+    "size": 8,
+    "regions": [
+        "44455000",
+        "41445000",
+        "11344070",
+        "11344460",
+        "11336666",
+        "11333666",
+        "12226666",
+        "12266666"
+    ],
+    "cats": [
+        {
+            "row": 0,
+            "column": 7,
+            "letter": "S",
+            "locked": false
+        },
+        {
+            "row": 1,
+            "column": 4,
+            "letter": "U",
+            "locked": false
+        },
+        {
+            "row": 2,
+            "column": 6,
+            "letter": "N",
+            "locked": false
+        },
+        {
+            "row": 3,
+            "column": 3,
+            "letter": "L",
+            "locked": false
+        },
+        {
+            "row": 4,
+            "column": 0,
+            "letter": "I",
+            "locked": false
+        },
+        {
+            "row": 5,
+            "column": 2,
+            "letter": "G",
+            "locked": false
+        },
+        {
+            "row": 6,
+            "column": 5,
+            "letter": "H",
+            "locked": false
+        },
+        {
+            "row": 7,
+            "column": 1,
+            "letter": "T",
+            "locked": false
+        }
+    ]
+}

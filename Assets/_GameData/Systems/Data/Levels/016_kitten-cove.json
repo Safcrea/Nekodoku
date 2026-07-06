@@ -1,0 +1,45 @@
+{
+    "formatVersion": 1,
+    "id": "016_kitten-cove",
+    "title": "Kitten Cove",
+    "size": 5,
+    "regions": [
+        "34400",
+        "44440",
+        "41440",
+        "11444",
+        "11422"
+    ],
+    "cats": [
+        {
+            "row": 0,
+            "column": 0,
+            "letter": "S",
+            "locked": true
+        },
+        {
+            "row": 1,
+            "column": 2,
+            "letter": "H",
+            "locked": false
+        },
+        {
+            "row": 2,
+            "column": 4,
+            "letter": "A",
+            "locked": false
+        },
+        {
+            "row": 3,
+            "column": 1,
+            "letter": "R",
+            "locked": false
+        },
+        {
+            "row": 4,
+            "column": 3,
+            "letter": "P",
+            "locked": false
+        }
+    ]
+}

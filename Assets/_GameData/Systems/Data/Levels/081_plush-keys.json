@@ -1,0 +1,66 @@
+{
+    "formatVersion": 1,
+    "id": "081_plush-keys",
+    "title": "Plush Keys",
+    "size": 8,
+    "regions": [
+        "66000004",
+        "56000344",
+        "55701334",
+        "77711134",
+        "71111334",
+        "72221134",
+        "72223334",
+        "77222224"
+    ],
+    "cats": [
+        {
+            "row": 0,
+            "column": 1,
+            "letter": "B",
+            "locked": false
+        },
+        {
+            "row": 1,
+            "column": 3,
+            "letter": "U",
+            "locked": false
+        },
+        {
+            "row": 2,
+            "column": 0,
+            "letter": "I",
+            "locked": false
+        },
+        {
+            "row": 3,
+            "column": 2,
+            "letter": "L",
+            "locked": false
+        },
+        {
+            "row": 4,
+            "column": 6,
+            "letter": "D",
+            "locked": false
+        },
+        {
+            "row": 5,
+            "column": 4,
+            "letter": "I",
+            "locked": false
+        },
+        {
+            "row": 6,
+            "column": 7,
+            "letter": "N",
+            "locked": false
+        },
+        {
+            "row": 7,
+            "column": 5,
+            "letter": "G",
+            "locked": false
+        }
+    ]
+}

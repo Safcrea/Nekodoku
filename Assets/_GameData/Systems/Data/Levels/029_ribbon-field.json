@@ -1,0 +1,52 @@
+{
+    "formatVersion": 1,
+    "id": "029_ribbon-field",
+    "title": "Ribbon Field",
+    "size": 6,
+    "regions": [
+        "242221",
+        "222331",
+        "522301",
+        "522001",
+        "552055",
+        "555555"
+    ],
+    "cats": [
+        {
+            "row": 0,
+            "column": 1,
+            "letter": "O",
+            "locked": true
+        },
+        {
+            "row": 1,
+            "column": 4,
+            "letter": "R",
+            "locked": false
+        },
+        {
+            "row": 2,
+            "column": 2,
+            "letter": "A",
+            "locked": false
+        },
+        {
+            "row": 3,
+            "column": 5,
+            "letter": "N",
+            "locked": false
+        },
+        {
+            "row": 4,
+            "column": 3,
+            "letter": "G",
+            "locked": false
+        },
+        {
+            "row": 5,
+            "column": 0,
+            "letter": "E",
+            "locked": false
+        }
+    ]
+}

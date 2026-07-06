@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f158772fbfa14aa4dbf3f2765208ac60, type: 3}
+  m_Name: ShockwaveButtonsSo
+  m_EditorClassIdentifier: JuicyCodeSpringsDemo:JuicyCodeSprings.Demo.Scripts:DemoElementSo
+  demoElement: {fileID: 5108441032091498710, guid: aeb41863e51070d469bdcb71902b4f8f,
+    type: 3}
+  description: Your imagination is the only limit! You can easily use springs for
+    any use case, in any component. Here we are pushing around some UI elements inside
+    a grid.
+  is3d: 0
+  buttonPrefabOf3dElement: {fileID: 0}

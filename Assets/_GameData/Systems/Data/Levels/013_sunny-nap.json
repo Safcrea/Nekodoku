@@ -1,0 +1,45 @@
+{
+    "formatVersion": 1,
+    "id": "013_sunny-nap",
+    "title": "Sunny Nap",
+    "size": 5,
+    "regions": [
+        "11111",
+        "10331",
+        "00221",
+        "22222",
+        "44222"
+    ],
+    "cats": [
+        {
+            "row": 0,
+            "column": 4,
+            "letter": "C",
+            "locked": true
+        },
+        {
+            "row": 1,
+            "column": 2,
+            "letter": "H",
+            "locked": false
+        },
+        {
+            "row": 2,
+            "column": 0,
+            "letter": "A",
+            "locked": false
+        },
+        {
+            "row": 3,
+            "column": 3,
+            "letter": "I",
+            "locked": false
+        },
+        {
+            "row": 4,
+            "column": 1,
+            "letter": "R",
+            "locked": false
+        }
+    ]
+}

@@ -1,0 +1,45 @@
+{
+    "formatVersion": 1,
+    "id": "011_felix-field",
+    "title": "Felix Field",
+    "size": 5,
+    "regions": [
+        "33442",
+        "33422",
+        "11122",
+        "11120",
+        "11120"
+    ],
+    "cats": [
+        {
+            "row": 0,
+            "column": 2,
+            "letter": "T",
+            "locked": true
+        },
+        {
+            "row": 1,
+            "column": 0,
+            "letter": "R",
+            "locked": true
+        },
+        {
+            "row": 2,
+            "column": 3,
+            "letter": "A",
+            "locked": false
+        },
+        {
+            "row": 3,
+            "column": 1,
+            "letter": "I",
+            "locked": false
+        },
+        {
+            "row": 4,
+            "column": 4,
+            "letter": "N",
+            "locked": false
+        }
+    ]
+}

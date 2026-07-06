@@ -1,0 +1,52 @@
+{
+    "formatVersion": 1,
+    "id": "041_moonlit-grove",
+    "title": "Moonlit Grove",
+    "size": 6,
+    "regions": [
+        "444411",
+        "441113",
+        "411111",
+        "455221",
+        "445521",
+        "440000"
+    ],
+    "cats": [
+        {
+            "row": 0,
+            "column": 0,
+            "letter": "A",
+            "locked": true
+        },
+        {
+            "row": 1,
+            "column": 5,
+            "letter": "N",
+            "locked": false
+        },
+        {
+            "row": 2,
+            "column": 3,
+            "letter": "C",
+            "locked": false
+        },
+        {
+            "row": 3,
+            "column": 1,
+            "letter": "H",
+            "locked": false
+        },
+        {
+            "row": 4,
+            "column": 4,
+            "letter": "O",
+            "locked": false
+        },
+        {
+            "row": 5,
+            "column": 2,
+            "letter": "R",
+            "locked": false
+        }
+    ]
+}

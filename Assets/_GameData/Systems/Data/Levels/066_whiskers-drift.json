@@ -1,0 +1,66 @@
+{
+    "formatVersion": 1,
+    "id": "066_whiskers-drift",
+    "title": "Whiskers Drift",
+    "size": 8,
+    "regions": [
+        "11111770",
+        "14431700",
+        "44431122",
+        "44433222",
+        "45333322",
+        "45353552",
+        "45555562",
+        "66666666"
+    ],
+    "cats": [
+        {
+            "row": 0,
+            "column": 5,
+            "letter": "N",
+            "locked": false
+        },
+        {
+            "row": 1,
+            "column": 7,
+            "letter": "O",
+            "locked": false
+        },
+        {
+            "row": 2,
+            "column": 4,
+            "letter": "T",
+            "locked": false
+        },
+        {
+            "row": 3,
+            "column": 6,
+            "letter": "E",
+            "locked": false
+        },
+        {
+            "row": 4,
+            "column": 2,
+            "letter": "B",
+            "locked": false
+        },
+        {
+            "row": 5,
+            "column": 0,
+            "letter": "O",
+            "locked": false
+        },
+        {
+            "row": 6,
+            "column": 3,
+            "letter": "O",
+            "locked": false
+        },
+        {
+            "row": 7,
+            "column": 1,
+            "letter": "K",
+            "locked": false
+        }
+    ]
+}

@@ -1,0 +1,73 @@
+{
+    "formatVersion": 1,
+    "id": "090_purring-scout",
+    "title": "Purring Scout",
+    "size": 9,
+    "regions": [
+        "221177554",
+        "221177554",
+        "211177555",
+        "211177555",
+        "211077555",
+        "211887555",
+        "211887555",
+        "311887555",
+        "311886655"
+    ],
+    "cats": [
+        {
+            "row": 0,
+            "column": 1,
+            "letter": "H",
+            "locked": false
+        },
+        {
+            "row": 1,
+            "column": 8,
+            "letter": "A",
+            "locked": false
+        },
+        {
+            "row": 2,
+            "column": 2,
+            "letter": "P",
+            "locked": false
+        },
+        {
+            "row": 3,
+            "column": 5,
+            "letter": "P",
+            "locked": false
+        },
+        {
+            "row": 4,
+            "column": 3,
+            "letter": "I",
+            "locked": false
+        },
+        {
+            "row": 5,
+            "column": 7,
+            "letter": "N",
+            "locked": false
+        },
+        {
+            "row": 6,
+            "column": 4,
+            "letter": "E",
+            "locked": false
+        },
+        {
+            "row": 7,
+            "column": 0,
+            "letter": "S",
+            "locked": false
+        },
+        {
+            "row": 8,
+            "column": 6,
+            "letter": "S",
+            "locked": false
+        }
+    ]
+}

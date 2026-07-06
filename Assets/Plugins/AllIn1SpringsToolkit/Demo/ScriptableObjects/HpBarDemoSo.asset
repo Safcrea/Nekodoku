@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f158772fbfa14aa4dbf3f2765208ac60, type: 3}
+  m_Name: HpBarDemoSo
+  m_EditorClassIdentifier: JuicyCodeSpringsDemo:JuicyCodeSprings.Demo.Scripts:DemoElementSo
+  demoElement: {fileID: 8289871501684379245, guid: cefe40cc685ec4c40ab77202dd2f26fc,
+    type: 3}
+  description: Each side of the bar has an empty Transform with a spring. We nudge
+    those springs and then in the HpBarSpringDemo we rotate the bar to align with
+    those Transforms. More color and scales polish is used too.
+  is3d: 0
+  buttonPrefabOf3dElement: {fileID: 0}

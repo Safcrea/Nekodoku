@@ -1,0 +1,66 @@
+{
+    "formatVersion": 1,
+    "id": "072_porch-patrol",
+    "title": "Porch Patrol",
+    "size": 8,
+    "regions": [
+        "06666633",
+        "07776663",
+        "07556663",
+        "07755553",
+        "07555333",
+        "07754311",
+        "00744421",
+        "04444422"
+    ],
+    "cats": [
+        {
+            "row": 0,
+            "column": 2,
+            "letter": "Q",
+            "locked": false
+        },
+        {
+            "row": 1,
+            "column": 0,
+            "letter": "U",
+            "locked": false
+        },
+        {
+            "row": 2,
+            "column": 3,
+            "letter": "E",
+            "locked": false
+        },
+        {
+            "row": 3,
+            "column": 1,
+            "letter": "S",
+            "locked": false
+        },
+        {
+            "row": 4,
+            "column": 5,
+            "letter": "T",
+            "locked": false
+        },
+        {
+            "row": 5,
+            "column": 7,
+            "letter": "I",
+            "locked": false
+        },
+        {
+            "row": 6,
+            "column": 4,
+            "letter": "O",
+            "locked": false
+        },
+        {
+            "row": 7,
+            "column": 6,
+            "letter": "N",
+            "locked": false
+        }
+    ]
+}

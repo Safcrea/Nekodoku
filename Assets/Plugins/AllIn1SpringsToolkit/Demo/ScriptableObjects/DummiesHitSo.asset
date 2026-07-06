@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f158772fbfa14aa4dbf3f2765208ac60, type: 3}
+  m_Name: DummiesHitSo
+  m_EditorClassIdentifier: JuicyCodeSpringsDemo:JuicyCodeSprings.Demo.Scripts:DemoElementSo
+  demoElement: {fileID: 388705297, guid: fc0783f7f8b612b439c52ecc4eea31c5, type: 3}
+  description: 'Showcases the complete and robust Rotation Spring inside Transform
+    Spring that gracefully handles nudges.
+
+    In the dummy extremities, you can
+    find SpringBones to add secondary motion without any real Physics, just springs.'
+  is3d: 1
+  buttonPrefabOf3dElement: {fileID: 8051371617762490025, guid: be72b732058daac45958e6c6a77620d5,
+    type: 3}

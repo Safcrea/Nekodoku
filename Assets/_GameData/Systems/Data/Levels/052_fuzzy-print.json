@@ -1,0 +1,59 @@
+{
+    "formatVersion": 1,
+    "id": "052_fuzzy-print",
+    "title": "Fuzzy Print",
+    "size": 7,
+    "regions": [
+        "4444443",
+        "4244143",
+        "4224133",
+        "4211133",
+        "1011666",
+        "1111166",
+        "5111111"
+    ],
+    "cats": [
+        {
+            "row": 0,
+            "column": 3,
+            "letter": "W",
+            "locked": true
+        },
+        {
+            "row": 1,
+            "column": 6,
+            "letter": "E",
+            "locked": false
+        },
+        {
+            "row": 2,
+            "column": 2,
+            "letter": "A",
+            "locked": false
+        },
+        {
+            "row": 3,
+            "column": 4,
+            "letter": "T",
+            "locked": false
+        },
+        {
+            "row": 4,
+            "column": 1,
+            "letter": "H",
+            "locked": false
+        },
+        {
+            "row": 5,
+            "column": 5,
+            "letter": "E",
+            "locked": false
+        },
+        {
+            "row": 6,
+            "column": 0,
+            "letter": "R",
+            "locked": false
+        }
+    ]
+}

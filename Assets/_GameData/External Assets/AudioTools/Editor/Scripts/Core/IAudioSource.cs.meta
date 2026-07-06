@@ -1,0 +1,18 @@
+﻿fileFormatVersion: 2
+guid: 58876e45317e43a6ab564762575e03d0
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 356424
+  packageName: Audio Tools
+  packageVersion: 1.0
+  assetPath: Assets/AudioTools/Editor/Scripts/Core/IAudioSource.cs
+  uploadId: 851964

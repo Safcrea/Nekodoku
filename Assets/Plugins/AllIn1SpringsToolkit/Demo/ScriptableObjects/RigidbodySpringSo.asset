@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f158772fbfa14aa4dbf3f2765208ac60, type: 3}
+  m_Name: RigidbodySpringSo
+  m_EditorClassIdentifier: JuicyCodeSpringsDemo:JuicyCodeSprings.Demo.Scripts:DemoElementSo
+  demoElement: {fileID: 6746975777064785153, guid: 7ba4d910d7e73814db4fbc6b1e19d9fe,
+    type: 3}
+  description: The Rigidbody Spring moves and rotates a Rigidbody similarly to a
+    Transform Spring, but integrates seamlessly with Unity's 3D Physics system.
+  is3d: 1
+  buttonPrefabOf3dElement: {fileID: 478891120504195106, guid: 63848dc6547b2f6468452e956886a1c0,
+    type: 3}

@@ -1,0 +1,23 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f158772fbfa14aa4dbf3f2765208ac60, type: 3}
+  m_Name: SpringBonesSo
+  m_EditorClassIdentifier: JuicyCodeSpringsDemo:JuicyCodeSprings.Demo.Scripts:DemoElementSo
+  demoElement: {fileID: 7528994326869498400, guid: a9f102f34af18e748952f04560f58b23,
+    type: 3}
+  description: This demo showcases SpringBones adding secondary motion to transform
+    chains and rigged character bones. The CreatureParent uses a BoneUpdater to ensure
+    optimal update order, processing from the top of the chain downwards. Observe
+    how SpringBones react to both rotation and movement of the creature.
+  is3d: 1
+  buttonPrefabOf3dElement: {fileID: 7908392502873387220, guid: 1f5365e290c0721418f574d094a5df14,
+    type: 3}

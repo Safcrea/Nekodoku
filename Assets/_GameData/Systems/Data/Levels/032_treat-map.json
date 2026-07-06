@@ -1,0 +1,52 @@
+{
+    "formatVersion": 1,
+    "id": "032_treat-map",
+    "title": "Treat Map",
+    "size": 6,
+    "regions": [
+        "444444",
+        "444220",
+        "555520",
+        "551122",
+        "553121",
+        "555111"
+    ],
+    "cats": [
+        {
+            "row": 0,
+            "column": 1,
+            "letter": "S",
+            "locked": true
+        },
+        {
+            "row": 1,
+            "column": 3,
+            "letter": "T",
+            "locked": false
+        },
+        {
+            "row": 2,
+            "column": 5,
+            "letter": "R",
+            "locked": false
+        },
+        {
+            "row": 3,
+            "column": 0,
+            "letter": "E",
+            "locked": false
+        },
+        {
+            "row": 4,
+            "column": 2,
+            "letter": "A",
+            "locked": false
+        },
+        {
+            "row": 5,
+            "column": 4,
+            "letter": "M",
+            "locked": false
+        }
+    ]
+}

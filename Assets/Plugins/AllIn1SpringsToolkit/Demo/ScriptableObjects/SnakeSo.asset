@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f158772fbfa14aa4dbf3f2765208ac60, type: 3}
+  m_Name: SnakeSo
+  m_EditorClassIdentifier: JuicyCodeSpringsDemo:JuicyCodeSprings.Demo.Scripts:DemoElementSo
+  demoElement: {fileID: 8026633562029947971, guid: 4554dca37a0475a4cb4a044491540f0e,
+    type: 3}
+  description: Showcases the Spring Skeleton component that can be used to easily
+    add secondary motion to rigged character bones or transform chains.
+  is3d: 1
+  buttonPrefabOf3dElement: {fileID: 7423742026314079941, guid: 59fdd9650d4e6544bb94120d35295e84,
+    type: 3}

@@ -1,0 +1,45 @@
+{
+    "formatVersion": 1,
+    "id": "007_laser-lane",
+    "title": "Laser Lane",
+    "size": 5,
+    "regions": [
+        "00222",
+        "30011",
+        "30111",
+        "44111",
+        "44111"
+    ],
+    "cats": [
+        {
+            "row": 0,
+            "column": 4,
+            "letter": "M",
+            "locked": true
+        },
+        {
+            "row": 1,
+            "column": 2,
+            "letter": "U",
+            "locked": true
+        },
+        {
+            "row": 2,
+            "column": 0,
+            "letter": "S",
+            "locked": false
+        },
+        {
+            "row": 3,
+            "column": 3,
+            "letter": "I",
+            "locked": false
+        },
+        {
+            "row": 4,
+            "column": 1,
+            "letter": "C",
+            "locked": false
+        }
+    ]
+}

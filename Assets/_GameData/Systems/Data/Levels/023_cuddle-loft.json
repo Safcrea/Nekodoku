@@ -1,0 +1,52 @@
+{
+    "formatVersion": 1,
+    "id": "023_cuddle-loft",
+    "title": "Cuddle Loft",
+    "size": 6,
+    "regions": [
+        "552222",
+        "155522",
+        "555552",
+        "500332",
+        "503322",
+        "444422"
+    ],
+    "cats": [
+        {
+            "row": 0,
+            "column": 5,
+            "letter": "P",
+            "locked": true
+        },
+        {
+            "row": 1,
+            "column": 0,
+            "letter": "O",
+            "locked": false
+        },
+        {
+            "row": 2,
+            "column": 2,
+            "letter": "C",
+            "locked": false
+        },
+        {
+            "row": 3,
+            "column": 4,
+            "letter": "K",
+            "locked": false
+        },
+        {
+            "row": 4,
+            "column": 1,
+            "letter": "E",
+            "locked": false
+        },
+        {
+            "row": 5,
+            "column": 3,
+            "letter": "T",
+            "locked": false
+        }
+    ]
+}

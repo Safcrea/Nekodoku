@@ -1,0 +1,52 @@
+{
+    "formatVersion": 1,
+    "id": "018_kitten-keys",
+    "title": "Kitten Keys",
+    "size": 6,
+    "regions": [
+        "212333",
+        "222223",
+        "420033",
+        "420000",
+        "425000",
+        "440000"
+    ],
+    "cats": [
+        {
+            "row": 0,
+            "column": 1,
+            "letter": "P",
+            "locked": true
+        },
+        {
+            "row": 1,
+            "column": 3,
+            "letter": "L",
+            "locked": false
+        },
+        {
+            "row": 2,
+            "column": 5,
+            "letter": "A",
+            "locked": false
+        },
+        {
+            "row": 3,
+            "column": 0,
+            "letter": "N",
+            "locked": false
+        },
+        {
+            "row": 4,
+            "column": 2,
+            "letter": "E",
+            "locked": false
+        },
+        {
+            "row": 5,
+            "column": 4,
+            "letter": "T",
+            "locked": false
+        }
+    ]
+}

@@ -1,0 +1,73 @@
+{
+    "formatVersion": 1,
+    "id": "093_golden-trail",
+    "title": "Golden Trail",
+    "size": 9,
+    "regions": [
+        "777777766",
+        "777777777",
+        "877777777",
+        "800000000",
+        "111100000",
+        "111123333",
+        "333333333",
+        "333333344",
+        "554444444"
+    ],
+    "cats": [
+        {
+            "row": 0,
+            "column": 7,
+            "letter": "N",
+            "locked": false
+        },
+        {
+            "row": 1,
+            "column": 3,
+            "letter": "O",
+            "locked": false
+        },
+        {
+            "row": 2,
+            "column": 0,
+            "letter": "T",
+            "locked": false
+        },
+        {
+            "row": 3,
+            "column": 5,
+            "letter": "E",
+            "locked": false
+        },
+        {
+            "row": 4,
+            "column": 2,
+            "letter": "B",
+            "locked": false
+        },
+        {
+            "row": 5,
+            "column": 4,
+            "letter": "O",
+            "locked": false
+        },
+        {
+            "row": 6,
+            "column": 6,
+            "letter": "O",
+            "locked": false
+        },
+        {
+            "row": 7,
+            "column": 8,
+            "letter": "K",
+            "locked": false
+        },
+        {
+            "row": 8,
+            "column": 1,
+            "letter": "S",
+            "locked": false
+        }
+    ]
+}

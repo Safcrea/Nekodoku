@@ -1,0 +1,14 @@
+﻿fileFormatVersion: 2
+guid: fff0b63ac18e4bd591612f3c9e6123c9
+TextScriptImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 356424
+  packageName: Audio Tools
+  packageVersion: 1.0
+  assetPath: Assets/AudioTools/CHANGELOG.md
+  uploadId: 851964

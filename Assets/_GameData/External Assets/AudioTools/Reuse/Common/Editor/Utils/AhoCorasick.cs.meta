@@ -1,0 +1,10 @@
+﻿fileFormatVersion: 2
+guid: b34f8c69992b44edb792164946aac17c
+timeCreated: 1754596397
+AssetOrigin:
+  serializedVersion: 1
+  productId: 356424
+  packageName: Audio Tools
+  packageVersion: 1.0
+  assetPath: Assets/AudioTools/Reuse/Common/Editor/Utils/AhoCorasick.cs
+  uploadId: 851964

@@ -1,0 +1,59 @@
+{
+    "formatVersion": 1,
+    "id": "054_shelf-den",
+    "title": "Shelf Den",
+    "size": 7,
+    "regions": [
+        "6622222",
+        "2222225",
+        "2222335",
+        "2133345",
+        "1114445",
+        "1144444",
+        "1044444"
+    ],
+    "cats": [
+        {
+            "row": 0,
+            "column": 0,
+            "letter": "L",
+            "locked": false
+        },
+        {
+            "row": 1,
+            "column": 3,
+            "letter": "A",
+            "locked": false
+        },
+        {
+            "row": 2,
+            "column": 6,
+            "letter": "N",
+            "locked": false
+        },
+        {
+            "row": 3,
+            "column": 4,
+            "letter": "T",
+            "locked": false
+        },
+        {
+            "row": 4,
+            "column": 2,
+            "letter": "E",
+            "locked": false
+        },
+        {
+            "row": 5,
+            "column": 5,
+            "letter": "R",
+            "locked": false
+        },
+        {
+            "row": 6,
+            "column": 1,
+            "letter": "N",
+            "locked": false
+        }
+    ]
+}

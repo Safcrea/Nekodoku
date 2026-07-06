@@ -1,0 +1,18 @@
+﻿fileFormatVersion: 2
+guid: f43c48002cbf423788c63a8b8d4b39bd
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences: []
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 356424
+  packageName: Audio Tools
+  packageVersion: 1.0
+  assetPath: Assets/AudioTools/Editor/Scripts/Core/AudioManager.cs
+  uploadId: 851964

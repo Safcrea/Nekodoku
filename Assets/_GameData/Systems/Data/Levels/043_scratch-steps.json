@@ -1,0 +1,59 @@
+{
+    "formatVersion": 1,
+    "id": "043_scratch-steps",
+    "title": "Scratch Steps",
+    "size": 7,
+    "regions": [
+        "4444441",
+        "2244444",
+        "2224434",
+        "6644450",
+        "6640550",
+        "6040050",
+        "6000000"
+    ],
+    "cats": [
+        {
+            "row": 0,
+            "column": 6,
+            "letter": "B",
+            "locked": true
+        },
+        {
+            "row": 1,
+            "column": 1,
+            "letter": "A",
+            "locked": false
+        },
+        {
+            "row": 2,
+            "column": 5,
+            "letter": "L",
+            "locked": false
+        },
+        {
+            "row": 3,
+            "column": 2,
+            "letter": "A",
+            "locked": false
+        },
+        {
+            "row": 4,
+            "column": 4,
+            "letter": "N",
+            "locked": false
+        },
+        {
+            "row": 5,
+            "column": 0,
+            "letter": "C",
+            "locked": false
+        },
+        {
+            "row": 6,
+            "column": 3,
+            "letter": "E",
+            "locked": false
+        }
+    ]
+}

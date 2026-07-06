@@ -1,0 +1,59 @@
+{
+    "formatVersion": 1,
+    "id": "060_cloud-cloud",
+    "title": "Cloud Cloud",
+    "size": 7,
+    "regions": [
+        "5111100",
+        "5560000",
+        "5566000",
+        "5556000",
+        "5556400",
+        "2554443",
+        "2555444"
+    ],
+    "cats": [
+        {
+            "row": 0,
+            "column": 2,
+            "letter": "H",
+            "locked": false
+        },
+        {
+            "row": 1,
+            "column": 5,
+            "letter": "O",
+            "locked": false
+        },
+        {
+            "row": 2,
+            "column": 3,
+            "letter": "R",
+            "locked": false
+        },
+        {
+            "row": 3,
+            "column": 1,
+            "letter": "I",
+            "locked": false
+        },
+        {
+            "row": 4,
+            "column": 4,
+            "letter": "Z",
+            "locked": false
+        },
+        {
+            "row": 5,
+            "column": 6,
+            "letter": "O",
+            "locked": false
+        },
+        {
+            "row": 6,
+            "column": 0,
+            "letter": "N",
+            "locked": false
+        }
+    ]
+}

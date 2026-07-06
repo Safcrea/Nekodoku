@@ -1,0 +1,66 @@
+{
+    "formatVersion": 1,
+    "id": "083_felix-route",
+    "title": "Felix Route",
+    "size": 8,
+    "regions": [
+        "76666662",
+        "70006622",
+        "00001222",
+        "30111122",
+        "30022222",
+        "33222222",
+        "33332422",
+        "33344455"
+    ],
+    "cats": [
+        {
+            "row": 0,
+            "column": 3,
+            "letter": "S",
+            "locked": false
+        },
+        {
+            "row": 1,
+            "column": 0,
+            "letter": "A",
+            "locked": false
+        },
+        {
+            "row": 2,
+            "column": 2,
+            "letter": "N",
+            "locked": false
+        },
+        {
+            "row": 3,
+            "column": 4,
+            "letter": "D",
+            "locked": false
+        },
+        {
+            "row": 4,
+            "column": 6,
+            "letter": "W",
+            "locked": false
+        },
+        {
+            "row": 5,
+            "column": 1,
+            "letter": "I",
+            "locked": false
+        },
+        {
+            "row": 6,
+            "column": 5,
+            "letter": "C",
+            "locked": false
+        },
+        {
+            "row": 7,
+            "column": 7,
+            "letter": "H",
+            "locked": false
+        }
+    ]
+}

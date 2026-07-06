@@ -1,0 +1,66 @@
+{
+    "formatVersion": 1,
+    "id": "079_laser-watch",
+    "title": "Laser Watch",
+    "size": 8,
+    "regions": [
+        "33300777",
+        "33307747",
+        "32377644",
+        "31777644",
+        "11116644",
+        "11166644",
+        "11115554",
+        "11111554"
+    ],
+    "cats": [
+        {
+            "row": 0,
+            "column": 0,
+            "letter": "H",
+            "locked": false
+        },
+        {
+            "row": 1,
+            "column": 3,
+            "letter": "O",
+            "locked": false
+        },
+        {
+            "row": 2,
+            "column": 1,
+            "letter": "S",
+            "locked": false
+        },
+        {
+            "row": 3,
+            "column": 4,
+            "letter": "P",
+            "locked": false
+        },
+        {
+            "row": 4,
+            "column": 7,
+            "letter": "I",
+            "locked": false
+        },
+        {
+            "row": 5,
+            "column": 5,
+            "letter": "T",
+            "locked": false
+        },
+        {
+            "row": 6,
+            "column": 2,
+            "letter": "A",
+            "locked": false
+        },
+        {
+            "row": 7,
+            "column": 6,
+            "letter": "L",
+            "locked": false
+        }
+    ]
+}

@@ -1,0 +1,73 @@
+{
+    "formatVersion": 1,
+    "id": "084_whiskered-peak",
+    "title": "Whiskered Peak",
+    "size": 9,
+    "regions": [
+        "223333333",
+        "333333333",
+        "333333334",
+        "555555554",
+        "555556666",
+        "888876666",
+        "888888888",
+        "008888888",
+        "000000011"
+    ],
+    "cats": [
+        {
+            "row": 0,
+            "column": 1,
+            "letter": "A",
+            "locked": false
+        },
+        {
+            "row": 1,
+            "column": 5,
+            "letter": "D",
+            "locked": false
+        },
+        {
+            "row": 2,
+            "column": 8,
+            "letter": "V",
+            "locked": false
+        },
+        {
+            "row": 3,
+            "column": 3,
+            "letter": "E",
+            "locked": false
+        },
+        {
+            "row": 4,
+            "column": 6,
+            "letter": "N",
+            "locked": false
+        },
+        {
+            "row": 5,
+            "column": 4,
+            "letter": "T",
+            "locked": false
+        },
+        {
+            "row": 6,
+            "column": 2,
+            "letter": "U",
+            "locked": false
+        },
+        {
+            "row": 7,
+            "column": 0,
+            "letter": "R",
+            "locked": false
+        },
+        {
+            "row": 8,
+            "column": 7,
+            "letter": "E",
+            "locked": false
+        }
+    ]
+}

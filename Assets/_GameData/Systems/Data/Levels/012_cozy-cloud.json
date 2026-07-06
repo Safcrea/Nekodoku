@@ -1,0 +1,45 @@
+{
+    "formatVersion": 1,
+    "id": "012_cozy-cloud",
+    "title": "Cozy Cloud",
+    "size": 5,
+    "regions": [
+        "12240",
+        "12200",
+        "12000",
+        "13300",
+        "33330"
+    ],
+    "cats": [
+        {
+            "row": 0,
+            "column": 3,
+            "letter": "S",
+            "locked": true
+        },
+        {
+            "row": 1,
+            "column": 1,
+            "letter": "M",
+            "locked": false
+        },
+        {
+            "row": 2,
+            "column": 4,
+            "letter": "I",
+            "locked": false
+        },
+        {
+            "row": 3,
+            "column": 0,
+            "letter": "L",
+            "locked": false
+        },
+        {
+            "row": 4,
+            "column": 2,
+            "letter": "E",
+            "locked": false
+        }
+    ]
+}

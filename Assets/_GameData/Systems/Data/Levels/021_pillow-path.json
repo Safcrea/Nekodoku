@@ -1,0 +1,52 @@
+{
+    "formatVersion": 1,
+    "id": "021_pillow-path",
+    "title": "Pillow Path",
+    "size": 6,
+    "regions": [
+        "000112",
+        "505522",
+        "555522",
+        "443222",
+        "433222",
+        "332222"
+    ],
+    "cats": [
+        {
+            "row": 0,
+            "column": 4,
+            "letter": "M",
+            "locked": true
+        },
+        {
+            "row": 1,
+            "column": 1,
+            "letter": "A",
+            "locked": false
+        },
+        {
+            "row": 2,
+            "column": 3,
+            "letter": "R",
+            "locked": false
+        },
+        {
+            "row": 3,
+            "column": 0,
+            "letter": "K",
+            "locked": false
+        },
+        {
+            "row": 4,
+            "column": 2,
+            "letter": "E",
+            "locked": false
+        },
+        {
+            "row": 5,
+            "column": 5,
+            "letter": "T",
+            "locked": false
+        }
+    ]
+}
