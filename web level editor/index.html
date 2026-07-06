@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Meowdoku Level Editor</title>
+    <link rel="stylesheet" href="css/styles.css" />
+    <script>
+        // Apply the saved theme before first paint to avoid a flash.
+        (function () {
+            var theme = localStorage.getItem("meowdoku-theme");
+            if (theme === "light" || theme === "dark") {
+                document.documentElement.dataset.theme = theme;
+            }
+        })();
+    </script>
+</head>
+<body>
+    <header class="card">
+        <div class="brand">
+            <span class="title">&#9701; MEOWDOKU</span>
+            <span class="subtitle">level editor &mdash; paint regions, place cats, ship puzzles</span>
+        </div>
+        <div class="theme-switch" id="theme-switch" role="group" aria-label="Theme">
+            <button data-theme-choice="light">&#9728; Light</button>
+            <button data-theme-choice="auto">&#10022; Auto</button>
+            <button data-theme-choice="dark">&#9790; Dark</button>
+        </div>
+    </header>
+
+    <main>
+        <div class="stack">
+            <section class="card">
+                <div class="micro-label"><span class="glyph">&#9881;</span> Level</div>
+                <div class="field">
+                    <label for="title-input">Title</label>
+                    <input type="text" id="title-input" autocomplete="off" />
+                </div>
+                <div class="field">
+                    <label for="id-input">Id (filename)</label>
+                    <input type="text" id="id-input" autocomplete="off" placeholder="auto from title" />
+                </div>
+                <div class="field">
+                    <label for="size-input">Size</label>
+                    <div class="field-row">
+                        <input type="range" id="size-input" min="3" max="9" step="1" />
+                        <span class="size-value" id="size-value">5&times;5</span>
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="word-input">Target word</label>
+                    <input type="text" id="word-input" autocomplete="off" spellcheck="false" />
+                </div>
+            </section>
+
+            <section class="card">
+                <div class="micro-label"><span class="glyph">&#9860;</span> Generate</div>
+                <div class="field">
+                    <label for="seed-input">Seed</label>
+                    <div class="field-row">
+                        <input type="text" id="seed-input" autocomplete="off" spellcheck="false" placeholder="any text" />
+                        <button class="btn small" id="random-seed-btn" title="Random seed">&#8635;</button>
+                    </div>
+                </div>
+                <div class="btn-row">
+                    <button class="btn primary" id="generate-btn">Generate level</button>
+                </div>
+                <p class="hint">Same seed + size = same level, every time. Uses the current board size (4&times;4 minimum).</p>
+            </section>
+
+            <section class="card">
+                <div class="micro-label"><span class="glyph">&#9998;</span> Paint</div>
+                <div class="mode-toolbar" id="mode-toolbar">
+                    <button data-mode="regions">Regions</button>
+                    <button data-mode="cats">Cats</button>
+                </div>
+                <div id="regions-controls">
+                    <div class="swatch-row" id="swatch-row"></div>
+                    <p class="hint">Pick a color, then click or drag across the board.</p>
+                </div>
+                <div id="cats-controls" hidden>
+                    <div class="swatch-row" id="letter-row"></div>
+                    <label class="locked-toggle">
+                        <input type="checkbox" id="locked-toggle" />
+                        starts revealed (locked)
+                    </label>
+                    <p class="hint">Pick a letter, then click its cell. Click a placed cat to remove it.</p>
+                </div>
+            </section>
+        </div>
+
+        <section class="card">
+            <div class="micro-label"><span class="glyph">&#8862;</span> Board</div>
+            <div class="board-wrap">
+                <div class="board" id="board"></div>
+            </div>
+        </section>
+
+        <div class="stack">
+            <section class="card">
+                <div class="micro-label"><span class="glyph">&#10003;</span> Validation</div>
+                <div class="status-row" id="status-row"></div>
+                <ul class="issue-list" id="issue-list"></ul>
+                <div class="btn-row file-actions">
+                    <button class="btn small" id="auto-place-btn" title="Place all cats at the unique solution">Auto-place cats</button>
+                </div>
+            </section>
+
+            <section class="card">
+                <div class="micro-label"><span class="glyph">&#8645;</span> File</div>
+                <textarea id="json-area" spellcheck="false" placeholder="Level JSON appears here. Paste JSON and press Load to import."></textarea>
+                <div class="btn-row file-actions">
+                    <button class="btn primary" id="download-btn">&#8595; Download</button>
+                    <button class="btn" id="copy-btn">Copy</button>
+                    <button class="btn" id="load-json-btn">Load from text</button>
+                    <button class="btn" id="open-file-btn">Open file&hellip;</button>
+                    <button class="btn" id="new-btn">New</button>
+                    <input type="file" id="file-input" accept=".json,application/json" hidden />
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer>same rules, same JSON as the game &mdash; drop saved files into Assets/_GameData/Systems/Data/Levels</footer>
+
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+    "name": "meowdoku-level-editor",
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "test": "node tests/validate-goldens.mjs && node tests/generate-test.mjs",
+        "serve": "python3 -m http.server 8377"
+    }
+}
