@@ -14,9 +14,9 @@ namespace Meowdoku
     {
         public List<TextAsset> levelFiles = new List<TextAsset>();
 
-        public NekoLevel[] LoadLevels()
+        public Level[] LoadLevels()
         {
-            List<NekoLevel> levels = new List<NekoLevel>(levelFiles.Count);
+            List<Level> levels = new List<Level>(levelFiles.Count);
             for (int i = 0; i < levelFiles.Count; i++)
             {
                 TextAsset asset = levelFiles[i];

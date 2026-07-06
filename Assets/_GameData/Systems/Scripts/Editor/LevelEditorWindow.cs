@@ -45,7 +45,7 @@ namespace Meowdoku
         private int size = 5;
         private string targetWord = string.Empty;
         private int[] regions;
-        private NekoCoord?[] catPositions;
+        private Coord?[] catPositions;
         private bool[] catLocked;
 
         private PaintMode paintMode = PaintMode.Regions;
@@ -98,7 +98,7 @@ namespace Meowdoku
         {
             newSize = Mathf.Clamp(newSize, MinSize, MaxSize);
             int[] newRegions = new int[newSize * newSize];
-            NekoCoord?[] newCats = new NekoCoord?[newSize];
+            Coord?[] newCats = new Coord?[newSize];
             bool[] newLocked = new bool[newSize];
 
             if (regions != null)
@@ -116,7 +116,7 @@ namespace Meowdoku
                 int copyCats = Mathf.Min(catPositions.Length, newCats.Length);
                 for (int i = 0; i < copyCats; i++)
                 {
-                    NekoCoord? coord = catPositions[i];
+                    Coord? coord = catPositions[i];
                     if (coord.HasValue && coord.Value.Row < newSize && coord.Value.Column < newSize)
                     {
                         newCats[i] = coord;
@@ -277,7 +277,7 @@ namespace Meowdoku
             else
             {
                 int existingIndex = IndexOfCatAt(row, column);
-                catPositions[selectedLetterIndex] = existingIndex == selectedLetterIndex ? null : new NekoCoord(row, column);
+                catPositions[selectedLetterIndex] = existingIndex == selectedLetterIndex ? null : new Coord(row, column);
             }
 
             Validate();
@@ -330,7 +330,7 @@ namespace Meowdoku
             validationIssues.Clear();
             legalSolutionCount = -1;
 
-            if (!TryBuildLevel(out NekoLevel level, out string error))
+            if (!TryBuildLevel(out Level level, out string error))
             {
                 if (!string.IsNullOrEmpty(error))
                 {
@@ -347,7 +347,7 @@ namespace Meowdoku
             }
         }
 
-        private bool TryBuildLevel(out NekoLevel level, out string error)
+        private bool TryBuildLevel(out Level level, out string error)
         {
             level = null;
             error = null;
@@ -364,8 +364,8 @@ namespace Meowdoku
                 return false;
             }
 
-            NekoCoord[] solution = new NekoCoord[size];
-            List<NekoCoord> locked = new List<NekoCoord>();
+            Coord[] solution = new Coord[size];
+            List<Coord> locked = new List<Coord>();
             for (int i = 0; i < size; i++)
             {
                 if (!catPositions[i].HasValue)
@@ -383,7 +383,7 @@ namespace Meowdoku
 
             try
             {
-                level = new NekoLevel(title, targetWord, regions, solution, locked.ToArray());
+                level = new Level(title, targetWord, regions, solution, locked.ToArray());
                 return true;
             }
             catch (Exception exception)
@@ -423,7 +423,7 @@ namespace Meowdoku
             try
             {
                 LevelData data = JsonUtility.FromJson<LevelData>(asset.text);
-                NekoLevel level = data.ToLevel();
+                Level level = data.ToLevel();
                 LoadFromLevel(level, data.id, AssetDatabase.GetAssetPath(asset));
             }
             catch (Exception exception)
@@ -432,7 +432,7 @@ namespace Meowdoku
             }
         }
 
-        private void LoadFromLevel(NekoLevel level, string levelId, string filePath)
+        private void LoadFromLevel(Level level, string levelId, string filePath)
         {
             loadedFilePath = filePath;
             id = levelId;
@@ -446,7 +446,7 @@ namespace Meowdoku
                 catPositions[i] = level.Solution[i];
             }
 
-            foreach (NekoCoord lockedCoord in level.LockedCats)
+            foreach (Coord lockedCoord in level.LockedCats)
             {
                 int index = level.IndexOfCat(lockedCoord.Row, lockedCoord.Column);
                 if (index >= 0)
@@ -462,7 +462,7 @@ namespace Meowdoku
 
         private void Save()
         {
-            if (!TryBuildLevel(out NekoLevel level, out string error))
+            if (!TryBuildLevel(out Level level, out string error))
             {
                 Debug.LogError($"Cannot save: {error}");
                 return;

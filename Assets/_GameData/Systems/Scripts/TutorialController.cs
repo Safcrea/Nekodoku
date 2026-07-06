@@ -59,35 +59,14 @@ namespace Meowdoku
         private Image focusRingImage;
 
         private BoardView boardView;
-        private WordSlotsView wordSlotsView;
         private Coroutine tutorialPulseRoutine;
         private Coroutine tutorialGuideRoutine;
         private TutorialGuideConfig activeTutorialGuideConfig;
         private bool hasActiveTutorialGuideConfig;
 
-        public bool Validate()
-        {
-            bool valid = true;
-            valid &= SceneValidation.LogIfMissing(tutorialPanel, "Tutorial Panel", this);
-            valid &= SceneValidation.LogIfMissing(tutorialHeaderText, "Tutorial Header Text", this);
-            valid &= SceneValidation.LogIfMissing(tutorialBodyText, "Tutorial Body Text", this);
-            valid &= SceneValidation.LogIfMissing(tutorialGuideRoot, "Tutorial Guide Root", this);
-            valid &= SceneValidation.LogIfMissing(tutorialGuideText, "Tutorial Guide Text", this);
-            valid &= SceneValidation.LogIfMissing(tutorialHandImage, "Tutorial Hand Image", this);
-            valid &= SceneValidation.LogIfMissing(focusRingImage, "Focus Ring Image", this);
-            return valid;
-        }
-
-        public void Initialize(BoardView board, WordSlotsView wordSlots)
+        public void Initialize(BoardView board)
         {
             boardView = board;
-            wordSlotsView = wordSlots;
-        }
-
-        public void SetSprites(Sprite focusRing, Sprite hand)
-        {
-            focusRingImage.sprite = focusRing;
-            tutorialHandImage.sprite = hand;
         }
 
         public void UpdatePanel(int levelIndex, PuzzleBoard board, bool animate)
@@ -267,7 +246,7 @@ namespace Meowdoku
 
         private bool TryGetLetterCrossGuide(PuzzleBoard board, Coord catCoord, string letterLabel, out TutorialGuideConfig config)
         {
-            if (!wordSlotsView.IsLetterVisible(catCoord))
+            if (!board.HasRevealedCat(catCoord.Row, catCoord.Column))
             {
                 config = new TutorialGuideConfig(catCoord, catCoord, TutorialGuideMode.Tap, $"Letter {letterLabel} is already found. Place crosses in spaces it rules out.");
                 return true;

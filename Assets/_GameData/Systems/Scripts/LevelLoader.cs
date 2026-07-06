@@ -5,7 +5,7 @@ namespace Meowdoku
     /// <summary>
     /// Loads the ordered level list from a <see cref="LevelDatabase"/>. Not a
     /// MonoBehaviour - it has no scene presence of its own, just wraps the one
-    /// call NekoGameManager needs at startup.
+    /// call GameManager needs at startup.
     /// </summary>
     public sealed class LevelLoader
     {

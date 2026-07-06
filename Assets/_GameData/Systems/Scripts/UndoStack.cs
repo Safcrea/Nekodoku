@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 
 namespace Meowdoku
 {
@@ -22,18 +21,16 @@ namespace Meowdoku
     internal readonly struct BoardSnapshot
     {
         public readonly CellSnapshot[] Cells;
-        public readonly Coord[] VisibleLetters;
 
-        public BoardSnapshot(CellSnapshot[] cells, Coord[] visibleLetters)
+        public BoardSnapshot(CellSnapshot[] cells)
         {
             Cells = cells;
-            VisibleLetters = visibleLetters;
         }
     }
 
     /// <summary>
-    /// Bounded undo history for board mark/reveal state and which cat letters are visible.
-    /// Pure board-state bookkeeping - the caller is responsible for stopping animations and
+    /// Bounded undo history for board mark/reveal state. Pure board-state
+    /// bookkeeping - the caller is responsible for stopping animations and
     /// refreshing the UI around a call to Save/TryPop.
     /// </summary>
     public sealed class NekoUndoStack
@@ -46,7 +43,7 @@ namespace Meowdoku
             entries.Clear();
         }
 
-        public void Save(PuzzleBoard board, IEnumerable<Coord> visibleLetters)
+        public void Save(PuzzleBoard board)
         {
             CellSnapshot[] cells = new CellSnapshot[board.Size * board.Size];
             int i = 0;
@@ -58,7 +55,7 @@ namespace Meowdoku
                 }
             }
 
-            entries.Push(new BoardSnapshot(cells, visibleLetters.ToArray()));
+            entries.Push(new BoardSnapshot(cells));
             while (entries.Count > MaxEntries)
             {
                 TrimOldest();

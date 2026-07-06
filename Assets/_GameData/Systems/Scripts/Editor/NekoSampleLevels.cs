@@ -113,11 +113,11 @@ namespace Meowdoku
             new LevelSeed("Whiskered Peak", "ADVENTURE", new[] { 1, 5, 8, 3, 6, 4, 2, 0, 7 }, "001111111", "111111111", "111111112", "333333332", "333334444", "666654444", "666666666", "776666666", "777777788")
         };
 
-        public static readonly NekoLevel[] Levels = BuildLevels();
+        public static readonly Level[] Levels = BuildLevels();
 
-        private static NekoLevel[] BuildLevels()
+        private static Level[] BuildLevels()
         {
-            List<NekoLevel> levels = new List<NekoLevel>(TargetLevelCount);
+            List<Level> levels = new List<Level>(TargetLevelCount);
             for (int i = 0; i < TargetLevelCount; i++)
             {
                 GetLevelPack(i, out LevelSeed[] seeds, out string[] words, out int variantIndex);
@@ -218,17 +218,17 @@ namespace Meowdoku
             return variantSeed <= 18 ? 1 : 0;
         }
 
-        private static NekoLevel Create(string title, string word, int lockedCatCount, LevelSeed seed, int transform, int colorShift)
+        private static Level Create(string title, string word, int lockedCatCount, LevelSeed seed, int transform, int colorShift)
         {
             int size = seed.Size;
             int[] regions = new int[size * size];
-            NekoCoord[] solution = new NekoCoord[size];
+            Coord[] solution = new Coord[size];
 
             for (int row = 0; row < size; row++)
             {
                 int solutionColumn = seed.SolutionColumns[row];
                 TransformCoord(row, solutionColumn, size, transform, out int transformedRow, out int transformedColumn);
-                solution[transformedRow] = new NekoCoord(transformedRow, transformedColumn);
+                solution[transformedRow] = new Coord(transformedRow, transformedColumn);
 
                 for (int column = 0; column < size; column++)
                 {
@@ -238,13 +238,13 @@ namespace Meowdoku
                 }
             }
 
-            return new NekoLevel(title, word, regions, solution, LockedCats(solution, lockedCatCount));
+            return new Level(title, word, regions, solution, LockedCats(solution, lockedCatCount));
         }
 
-        private static NekoCoord[] LockedCats(NekoCoord[] solution, int lockedCatCount)
+        private static Coord[] LockedCats(Coord[] solution, int lockedCatCount)
         {
             int count = Math.Max(0, Math.Min(lockedCatCount, solution.Length));
-            NekoCoord[] lockedCats = new NekoCoord[count];
+            Coord[] lockedCats = new Coord[count];
             for (int i = 0; i < count; i++)
             {
                 lockedCats[i] = solution[i];

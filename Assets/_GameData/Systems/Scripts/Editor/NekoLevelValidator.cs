@@ -23,7 +23,7 @@ namespace Meowdoku
             "BLOOD"
         };
 
-        public static List<string> FindStructuralIssues(NekoLevel level)
+        public static List<string> FindStructuralIssues(Level level)
         {
             List<string> issues = new List<string>();
             if (level == null)
@@ -56,7 +56,7 @@ namespace Meowdoku
             return issues;
         }
 
-        public static int CountLegalSolutions(NekoLevel level, int limit)
+        public static int CountLegalSolutions(Level level, int limit)
         {
             int size = level.Size;
             int[] columnsByRow = new int[size];
@@ -110,11 +110,11 @@ namespace Meowdoku
             return solutionCount;
         }
 
-        public static bool IsRegionConnected(NekoLevel level, int region)
+        public static bool IsRegionConnected(Level level, int region)
         {
             int size = level.Size;
             bool[] visited = new bool[size * size];
-            Queue<NekoCoord> queue = new Queue<NekoCoord>();
+            Queue<Coord> queue = new Queue<Coord>();
             int regionCellCount = 0;
 
             for (int row = 0; row < size; row++)
@@ -130,7 +130,7 @@ namespace Meowdoku
                     if (queue.Count == 0)
                     {
                         visited[(row * size) + column] = true;
-                        queue.Enqueue(new NekoCoord(row, column));
+                        queue.Enqueue(new Coord(row, column));
                     }
                 }
             }
@@ -138,7 +138,7 @@ namespace Meowdoku
             int connectedCellCount = 0;
             while (queue.Count > 0)
             {
-                NekoCoord coord = queue.Dequeue();
+                Coord coord = queue.Dequeue();
                 connectedCellCount++;
                 TryVisit(coord.Row - 1, coord.Column);
                 TryVisit(coord.Row + 1, coord.Column);
@@ -162,11 +162,11 @@ namespace Meowdoku
                 }
 
                 visited[index] = true;
-                queue.Enqueue(new NekoCoord(row, column));
+                queue.Enqueue(new Coord(row, column));
             }
         }
 
-        private static void AddTargetWordIssues(NekoLevel level, List<string> issues)
+        private static void AddTargetWordIssues(Level level, List<string> issues)
         {
             if (string.IsNullOrWhiteSpace(level.TargetWord))
             {
@@ -199,7 +199,7 @@ namespace Meowdoku
             }
         }
 
-        private static void AddRegionIssues(NekoLevel level, int size, List<string> issues)
+        private static void AddRegionIssues(Level level, int size, List<string> issues)
         {
             bool[] regionMapContainsId = new bool[size];
             foreach (int region in level.Regions)
@@ -228,7 +228,7 @@ namespace Meowdoku
             }
         }
 
-        private static void AddSolutionIssues(NekoLevel level, int size, List<string> issues)
+        private static void AddSolutionIssues(Level level, int size, List<string> issues)
         {
             bool[] rows = new bool[size];
             bool[] columns = new bool[size];
@@ -236,7 +236,7 @@ namespace Meowdoku
 
             for (int i = 0; i < level.Solution.Length; i++)
             {
-                NekoCoord cat = level.Solution[i];
+                Coord cat = level.Solution[i];
                 if (!level.Contains(cat.Row, cat.Column))
                 {
                     issues.Add($"{level.Title}: has a solution cat outside the board.");
@@ -265,7 +265,7 @@ namespace Meowdoku
 
                 for (int j = i + 1; j < level.Solution.Length; j++)
                 {
-                    NekoCoord other = level.Solution[j];
+                    Coord other = level.Solution[j];
                     bool touches = Math.Abs(cat.Row - other.Row) <= 1 && Math.Abs(cat.Column - other.Column) <= 1;
                     if (touches)
                     {
@@ -275,9 +275,9 @@ namespace Meowdoku
             }
         }
 
-        private static void AddLockedCatIssues(NekoLevel level, List<string> issues)
+        private static void AddLockedCatIssues(Level level, List<string> issues)
         {
-            foreach (NekoCoord lockedCat in level.LockedCats)
+            foreach (Coord lockedCat in level.LockedCats)
             {
                 if (!ContainsCoord(level.Solution, lockedCat))
                 {
@@ -286,9 +286,9 @@ namespace Meowdoku
             }
         }
 
-        private static bool ContainsCoord(NekoCoord[] coords, NekoCoord target)
+        private static bool ContainsCoord(Coord[] coords, Coord target)
         {
-            foreach (NekoCoord coord in coords)
+            foreach (Coord coord in coords)
             {
                 if (coord.Equals(target))
                 {

@@ -22,13 +22,13 @@ namespace Meowdoku
             Directory.CreateDirectory(LevelsFolder);
             Directory.CreateDirectory(Path.GetDirectoryName(DatabaseAssetPath));
 
-            NekoLevel[] levels = NekoSampleLevels.Levels;
+            Level[] levels = NekoSampleLevels.Levels;
             List<string> errors = new List<string>();
             List<string> filePaths = new List<string>(levels.Length);
 
             for (int i = 0; i < levels.Length; i++)
             {
-                NekoLevel level = levels[i];
+                Level level = levels[i];
                 List<string> issues = NekoLevelValidator.FindStructuralIssues(level);
                 if (issues.Count > 0)
                 {

@@ -13,12 +13,12 @@ namespace Meowdoku.Tests
         [Test]
         public void RoundTripThroughJsonPreservesLevelData()
         {
-            foreach (NekoLevel original in NekoSampleLevels.Levels)
+            foreach (Level original in NekoSampleLevels.Levels)
             {
                 LevelData data = LevelData.FromLevel("round-trip-test", original);
                 string json = JsonUtility.ToJson(data);
                 LevelData parsed = JsonUtility.FromJson<LevelData>(json);
-                NekoLevel restored = parsed.ToLevel();
+                Level restored = parsed.ToLevel();
 
                 Assert.AreEqual(original.Title, restored.Title);
                 Assert.AreEqual(original.TargetWord, restored.TargetWord);
@@ -35,8 +35,8 @@ namespace Meowdoku.Tests
             LevelDatabase database = AssetDatabase.LoadAssetAtPath<LevelDatabase>(DatabaseAssetPath);
             Assert.IsNotNull(database, $"No level database found at {DatabaseAssetPath}. Run Meowdoku > Levels > Export Sample Levels To JSON first.");
 
-            NekoLevel[] loaded = database.LoadLevels();
-            NekoLevel[] original = NekoSampleLevels.Levels;
+            Level[] loaded = database.LoadLevels();
+            Level[] original = NekoSampleLevels.Levels;
             Assert.AreEqual(original.Length, loaded.Length, "Exported level count does not match NekoSampleLevels. Re-run the exporter.");
 
             for (int i = 0; i < original.Length; i++)

@@ -19,7 +19,7 @@ namespace Meowdoku
         {
         }
 
-        public LevelCatData(NekoCoord coord, char letter, bool locked)
+        public LevelCatData(Coord coord, char letter, bool locked)
         {
             row = coord.Row;
             column = coord.Column;
@@ -27,16 +27,16 @@ namespace Meowdoku
             this.locked = locked;
         }
 
-        public NekoCoord ToCoord()
+        public Coord ToCoord()
         {
-            return new NekoCoord(row, column);
+            return new Coord(row, column);
         }
     }
 
     /// <summary>
     /// Plain, JSON-serializable level definition. This is the source-of-truth format for
     /// levels: authored by the (future) level editor or website, loaded by <see cref="LevelDatabase"/>,
-    /// and converted into the runtime <see cref="NekoLevel"/> model.
+    /// and converted into the runtime <see cref="Level"/> model.
     ///
     /// Regions are row-strings, one character per column, e.g. ["230", "220", "221"] for a
     /// 3x3 board. Each character is a region id 0-9, so this format supports boards up to
@@ -54,7 +54,7 @@ namespace Meowdoku
         public string[] regions;
         public LevelCatData[] cats;
 
-        public static LevelData FromLevel(string id, NekoLevel level)
+        public static LevelData FromLevel(string id, Level level)
         {
             if (level == null)
             {
@@ -71,7 +71,7 @@ namespace Meowdoku
             };
         }
 
-        public NekoLevel ToLevel()
+        public Level ToLevel()
         {
             string label = string.IsNullOrWhiteSpace(id) ? "<unknown level>" : id;
 
@@ -88,7 +88,7 @@ namespace Meowdoku
 
             int[] regionValues = ParseRegionRows(regions, size, label);
             char[] wordLetters = new char[size];
-            NekoCoord[] solution = new NekoCoord[size];
+            Coord[] solution = new Coord[size];
             int lockedCount = 0;
 
             for (int i = 0; i < size; i++)
@@ -112,7 +112,7 @@ namespace Meowdoku
                 }
             }
 
-            NekoCoord[] lockedCats = new NekoCoord[lockedCount];
+            Coord[] lockedCats = new Coord[lockedCount];
             int lockedIndex = 0;
             for (int i = 0; i < size; i++)
             {
@@ -123,7 +123,7 @@ namespace Meowdoku
             }
 
             string targetWord = new string(wordLetters);
-            return new NekoLevel(title, targetWord, regionValues, solution, lockedCats);
+            return new Level(title, targetWord, regionValues, solution, lockedCats);
         }
 
         private static string[] ToRegionRows(int[] regionValues, int size)
@@ -176,13 +176,13 @@ namespace Meowdoku
             return values;
         }
 
-        private static LevelCatData[] ToCatData(NekoLevel level)
+        private static LevelCatData[] ToCatData(Level level)
         {
-            NekoCoord[] solution = level.Solution;
+            Coord[] solution = level.Solution;
             LevelCatData[] result = new LevelCatData[solution.Length];
             for (int i = 0; i < solution.Length; i++)
             {
-                NekoCoord coord = solution[i];
+                Coord coord = solution[i];
                 bool locked = ContainsCoord(level.LockedCats, coord);
                 result[i] = new LevelCatData(coord, level.TargetWord[i], locked);
             }
@@ -190,9 +190,9 @@ namespace Meowdoku
             return result;
         }
 
-        private static bool ContainsCoord(NekoCoord[] coords, NekoCoord target)
+        private static bool ContainsCoord(Coord[] coords, Coord target)
         {
-            foreach (NekoCoord coord in coords)
+            foreach (Coord coord in coords)
             {
                 if (coord.Equals(target))
                 {

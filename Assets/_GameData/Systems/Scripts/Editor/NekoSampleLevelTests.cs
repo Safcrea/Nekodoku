@@ -16,7 +16,7 @@ namespace Meowdoku.Tests
         {
             for (int i = 0; i < NekoSampleLevels.Levels.Length; i++)
             {
-                NekoLevel level = NekoSampleLevels.Levels[i];
+                Level level = NekoSampleLevels.Levels[i];
                 int variantSeed = (i / 3) + 1;
                 Assert.AreEqual(ExpectedLockedCatCount(i, variantSeed), level.LockedCats.Length, $"{level.Title} has the wrong starter clue count.");
                 Assert.AreEqual(ExpectedBoardSize(i), level.Size, $"{level.Title} has the wrong board size.");
@@ -26,7 +26,7 @@ namespace Meowdoku.Tests
         [Test]
         public void SampleLevelsHaveValidDataAndUniqueSolutions()
         {
-            foreach (NekoLevel level in NekoSampleLevels.Levels)
+            foreach (Level level in NekoSampleLevels.Levels)
             {
                 List<string> issues = NekoLevelValidator.FindStructuralIssues(level);
                 Assert.IsEmpty(issues, string.Join("\n", issues));
@@ -37,11 +37,11 @@ namespace Meowdoku.Tests
         [Test]
         public void SampleLevelLettersFollowSolutionOrder()
         {
-            foreach (NekoLevel level in NekoSampleLevels.Levels)
+            foreach (Level level in NekoSampleLevels.Levels)
             {
                 for (int i = 0; i < level.Solution.Length; i++)
                 {
-                    NekoCoord coord = level.Solution[i];
+                    Coord coord = level.Solution[i];
                     Assert.AreEqual(level.TargetWord[i], level.LetterForCat(coord.Row, coord.Column), $"{level.Title} letter {i} is not mapped to its solution cat.");
                 }
             }
@@ -50,11 +50,11 @@ namespace Meowdoku.Tests
         [Test]
         public void CorrectCatCommitKeepsEveryCellActive()
         {
-            NekoLevel level = NekoSampleLevels.Levels[0];
-            NekoPuzzleBoard board = new NekoPuzzleBoard(level);
-            NekoCoord cat = level.Solution[1];
+            Level level = NekoSampleLevels.Levels[0];
+            PuzzleBoard board = new PuzzleBoard(level);
+            Coord cat = level.Solution[1];
 
-            Assert.AreEqual(NekoCommitResult.Correct, board.CommitCat(cat.Row, cat.Column));
+            Assert.AreEqual(CommitResult.Correct, board.CommitCat(cat.Row, cat.Column));
 
             for (int row = 0; row < level.Size; row++)
             {
@@ -68,11 +68,11 @@ namespace Meowdoku.Tests
         [Test]
         public void CorrectCatCommitDoesNotAutoCrossRuledOutCells()
         {
-            NekoLevel level = NekoSampleLevels.Levels[0];
-            NekoPuzzleBoard board = new NekoPuzzleBoard(level);
-            NekoCoord cat = level.Solution[1];
+            Level level = NekoSampleLevels.Levels[0];
+            PuzzleBoard board = new PuzzleBoard(level);
+            Coord cat = level.Solution[1];
 
-            Assert.AreEqual(NekoCommitResult.Correct, board.CommitCat(cat.Row, cat.Column));
+            Assert.AreEqual(CommitResult.Correct, board.CommitCat(cat.Row, cat.Column));
 
             for (int column = 0; column < level.Size; column++)
             {
@@ -81,7 +81,7 @@ namespace Meowdoku.Tests
                     continue;
                 }
 
-                Assert.AreEqual(NekoCellMark.Empty, board.GetMark(cat.Row, column), $"Cell {cat.Row},{column} should not be auto-crossed.");
+                Assert.AreEqual(CellMark.Empty, board.GetMark(cat.Row, column), $"Cell {cat.Row},{column} should not be auto-crossed.");
             }
 
             for (int row = 0; row < level.Size; row++)
@@ -91,21 +91,21 @@ namespace Meowdoku.Tests
                     continue;
                 }
 
-                Assert.AreEqual(NekoCellMark.Empty, board.GetMark(row, cat.Column), $"Cell {row},{cat.Column} should not be auto-crossed.");
+                Assert.AreEqual(CellMark.Empty, board.GetMark(row, cat.Column), $"Cell {row},{cat.Column} should not be auto-crossed.");
             }
         }
 
         [Test]
         public void MultipleCatCommitsKeepTheFixedBoardShape()
         {
-            NekoLevel level = NekoSampleLevels.Levels[0];
-            NekoPuzzleBoard board = new NekoPuzzleBoard(level);
+            Level level = NekoSampleLevels.Levels[0];
+            PuzzleBoard board = new PuzzleBoard(level);
 
-            foreach (NekoCoord cat in level.Solution)
+            foreach (Coord cat in level.Solution)
             {
                 if (!board.IsRevealed(cat.Row, cat.Column))
                 {
-                    Assert.AreEqual(NekoCommitResult.Correct, board.CommitCat(cat.Row, cat.Column));
+                    Assert.AreEqual(CommitResult.Correct, board.CommitCat(cat.Row, cat.Column));
                 }
             }
 
