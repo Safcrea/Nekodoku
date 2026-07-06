@@ -1,0 +1,5 @@
+/Users/zohaib2469/Documents/Zohaib_Files/Unity Projects/Nekodoku/.utmp/RelWithDebInfo/366w1i6r/arm64-v8a/CMakeFiles/edit_cache.dir
+/Users/zohaib2469/Documents/Zohaib_Files/Unity Projects/Nekodoku/.utmp/RelWithDebInfo/366w1i6r/arm64-v8a/CMakeFiles/rebuild_cache.dir
+/Users/zohaib2469/Documents/Zohaib_Files/Unity Projects/Nekodoku/.utmp/RelWithDebInfo/366w1i6r/arm64-v8a/GameActivity/CMakeFiles/game.dir
+/Users/zohaib2469/Documents/Zohaib_Files/Unity Projects/Nekodoku/.utmp/RelWithDebInfo/366w1i6r/arm64-v8a/GameActivity/CMakeFiles/edit_cache.dir
+/Users/zohaib2469/Documents/Zohaib_Files/Unity Projects/Nekodoku/.utmp/RelWithDebInfo/366w1i6r/arm64-v8a/GameActivity/CMakeFiles/rebuild_cache.dir
