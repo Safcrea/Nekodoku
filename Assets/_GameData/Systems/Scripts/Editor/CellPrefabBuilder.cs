@@ -9,9 +9,9 @@ namespace Meowdoku
     /// Builds Assets/_GameData/Systems/Prefabs/NekoCell.prefab: the board cell, as a real
     /// prefab asset instead of a GameObject hierarchy assembled from scratch in code every
     /// time a level loads. Re-run after changing the cell's visual structure, then re-assign
-    /// it on Neko Game Controller's Cell Prefab field if it was ever unassigned.
+    /// it on NekoBoardView's Cell Prefab field if it was ever unassigned.
     ///
-    /// Colors here are duplicated from NekoGameController's private theme constants (there's
+    /// Colors here are duplicated from NekoBoardView's private theme constants (there's
     /// no shared theme asset yet - that's a follow-up step). Keep them in sync until then.
     /// </summary>
     public static class CellPrefabBuilder
