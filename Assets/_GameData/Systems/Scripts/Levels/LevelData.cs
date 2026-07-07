@@ -4,26 +4,20 @@ using System.Text;
 namespace Meowdoku
 {
     /// <summary>
-    /// One hidden cat: its board position, the word letter it reveals, and whether it
-    /// starts pre-revealed. Array order matches the word: cats[i].letter is TargetWord[i].
+    /// One hidden cat: its board position, and whether it starts pre-revealed.
     /// </summary>
     [Serializable]
     public sealed class LevelCatData
     {
         public int row;
         public int column;
-        public string letter;
         public bool locked;
 
-        public LevelCatData()
-        {
-        }
 
-        public LevelCatData(Coord coord, char letter, bool locked)
+        public LevelCatData(Coord coord, bool locked)
         {
             row = coord.Row;
             column = coord.Column;
-            this.letter = letter.ToString();
             this.locked = locked;
         }
 
@@ -64,7 +58,6 @@ namespace Meowdoku
             return new LevelData
             {
                 id = id,
-                title = level.Title,
                 size = level.Size,
                 regions = ToRegionRows(level.Regions, level.Size),
                 cats = ToCatData(level)
@@ -87,7 +80,6 @@ namespace Meowdoku
             }
 
             int[] regionValues = ParseRegionRows(regions, size, label);
-            char[] wordLetters = new char[size];
             Coord[] solution = new Coord[size];
             int lockedCount = 0;
 
@@ -98,13 +90,6 @@ namespace Meowdoku
                 {
                     throw new InvalidOperationException($"Level '{label}' has a null cat entry at index {i}.");
                 }
-
-                if (string.IsNullOrEmpty(cat.letter) || cat.letter.Length != 1)
-                {
-                    throw new InvalidOperationException($"Level '{label}' cat {i} must have exactly one letter.");
-                }
-
-                wordLetters[i] = char.ToUpperInvariant(cat.letter[0]);
                 solution[i] = cat.ToCoord();
                 if (cat.locked)
                 {
@@ -122,8 +107,8 @@ namespace Meowdoku
                 }
             }
 
-            string targetWord = new string(wordLetters);
-            return new Level(title, targetWord, regionValues, solution, lockedCats);
+
+            return new Level(regionValues, solution, lockedCats);
         }
 
         private static string[] ToRegionRows(int[] regionValues, int size)
@@ -184,7 +169,7 @@ namespace Meowdoku
             {
                 Coord coord = solution[i];
                 bool locked = ContainsCoord(level.LockedCats, coord);
-                result[i] = new LevelCatData(coord, level.TargetWord[i], locked);
+                result[i] = new LevelCatData(coord, locked);
             }
 
             return result;
