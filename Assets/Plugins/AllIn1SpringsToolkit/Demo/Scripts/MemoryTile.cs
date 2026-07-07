@@ -9,14 +9,14 @@ namespace AllIn1SpringsToolkit.Demo.Scripts
         //It handles the rotation of the spring
         //Holds the state data of the tile
         //It receives the click callback and sends it to the MemoryGameDemoController
-        
+
         [SerializeField] private Image iconImage;
         [SerializeField] private Image ringImage;
         [SerializeField] private Image backImage;
         [SerializeField] private GameObject backfaceGameObject;
         [SerializeField] private TransformSpringComponent transformSpring;
         public int memoryGameId;
-        
+
         private Transform visualsTransform;
         [HideInInspector] public MemoryGameDemoController memoryGameDemoController;
         [HideInInspector] public bool isFaceUp;
@@ -47,7 +47,7 @@ namespace AllIn1SpringsToolkit.Demo.Scripts
             bool isFrontFace = dotProduct >= 0;
             backfaceGameObject.SetActive(!isFrontFace);
         }
-        
+
         public void SetIcon(Sprite icon, Color iconColor)
         {
             iconImage.sprite = icon;
@@ -55,22 +55,22 @@ namespace AllIn1SpringsToolkit.Demo.Scripts
             ringImage.color = iconColor;
             backImage.color = Color.Lerp(iconColor, Color.white, 0.85f);
         }
-        
+
         public void FaceUp()
         {
             isFaceUp = true;
             transformSpring.SetTargetRotation(new Vector3(0f, 0f, 0f));
         }
-        
+
         public void FaceDown()
         {
             isFaceUp = false;
             transformSpring.SetTargetRotation(new Vector3(0f, 180f, 0f));
         }
-        
+
         public void OnClick()
         {
-            if(isFaceUp)
+            if (isFaceUp)
             {
                 memoryGameDemoController.CheckIfGameIsWon();
                 return;
