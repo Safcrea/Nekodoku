@@ -144,6 +144,7 @@ namespace Meowdoku
             crossDragHasUndoSnapshot = false;
             lastCrossDragRow = -1;
             lastCrossDragColumn = -1;
+            StopOffTilePointerTracking();
             gameManager.Refresh();
         }
 
@@ -371,7 +372,7 @@ namespace Meowdoku
         private void BeginOffTilePointerTracking(Vector2 screenPosition, int pointerId)
         {
             Camera eventCamera = boardView.GetPointerEventCamera();
-            if (boardView.TryPointerToCell(screenPosition, eventCamera, out _, out _) || PointerStartedOverBlockingUi(screenPosition))
+            if (boardView.TryPointerToCell(screenPosition, eventCamera, out _, out _) || PointerOverBlockingUi(screenPosition))
             {
                 StopOffTilePointerTracking();
                 return;
@@ -385,7 +386,7 @@ namespace Meowdoku
         private void TryContinueOffTileCrossDrag(Vector2 screenPosition)
         {
             Camera eventCamera = boardView.GetPointerEventCamera();
-            if (!boardView.TryPointerToCell(screenPosition, eventCamera, out _, out _))
+            if (PointerOverBlockingUi(screenPosition) || !boardView.TryPointerToCell(screenPosition, eventCamera, out _, out _))
             {
                 return;
             }
@@ -431,7 +432,7 @@ namespace Meowdoku
             offTilePointerId = MousePointerId;
         }
 
-        private bool PointerStartedOverBlockingUi(Vector2 screenPosition)
+        private bool PointerOverBlockingUi(Vector2 screenPosition)
         {
             EventSystem eventSystem = EventSystem.current;
             if (eventSystem == null)

@@ -23,14 +23,12 @@ namespace Meowdoku
             public readonly Coord StartCoord;
             public readonly Coord EndCoord;
             public readonly TutorialGuideMode Mode;
-            public readonly string Message;
 
-            public TutorialGuideConfig(Coord startCoord, Coord endCoord, TutorialGuideMode mode, string message)
+            public TutorialGuideConfig(Coord startCoord, Coord endCoord, TutorialGuideMode mode)
             {
                 StartCoord = startCoord;
                 EndCoord = endCoord;
                 Mode = mode;
-                Message = message;
             }
         }
 
@@ -48,10 +46,6 @@ namespace Meowdoku
 
         [SerializeField]
         private RectTransform tutorialGuideRoot;
-
-        [SerializeField]
-        private Text tutorialGuideText;
-
         [SerializeField]
         private Image tutorialHandImage;
 
@@ -178,7 +172,6 @@ namespace Meowdoku
             hasActiveTutorialGuideConfig = true;
 
             tutorialGuideRoot.gameObject.SetActive(true);
-            tutorialGuideText.text = config.Message;
 
             if (animate || configChanged || tutorialGuideRoutine == null)
             {
@@ -203,8 +196,7 @@ namespace Meowdoku
             }
 
             Coord starterCat = board.Level.LockedCats[0];
-            string letterLabel = board.GetLetterForCat(starterCat.Row, starterCat.Column).ToString();
-            if (TryGetLetterCrossGuide(board, starterCat, letterLabel, out config))
+            if (TryGetLetterCrossGuide(board, starterCat, out config))
             {
                 return true;
             }
@@ -218,8 +210,7 @@ namespace Meowdoku
                         config = new TutorialGuideConfig(
                             new Coord(row, column),
                             new Coord(row, column),
-                            TutorialGuideMode.DoubleTap,
-                            "Double tap a square when you are sure a hidden cat is there.");
+                            TutorialGuideMode.DoubleTap);
                         return true;
                     }
                 }
@@ -234,8 +225,7 @@ namespace Meowdoku
                         config = new TutorialGuideConfig(
                             new Coord(row, column),
                             new Coord(row, column),
-                            TutorialGuideMode.Tap,
-                            "Tap once to mark a square that cannot hold a cat.");
+                            TutorialGuideMode.Tap);
                         return true;
                     }
                 }
@@ -244,11 +234,11 @@ namespace Meowdoku
             return false;
         }
 
-        private bool TryGetLetterCrossGuide(PuzzleBoard board, Coord catCoord, string letterLabel, out TutorialGuideConfig config)
+        private bool TryGetLetterCrossGuide(PuzzleBoard board, Coord catCoord, out TutorialGuideConfig config)
         {
             if (!board.HasRevealedCat(catCoord.Row, catCoord.Column))
             {
-                config = new TutorialGuideConfig(catCoord, catCoord, TutorialGuideMode.Tap, $"Letter {letterLabel} is already found. Place crosses in spaces it rules out.");
+                config = new TutorialGuideConfig(catCoord, catCoord, TutorialGuideMode.Tap);
                 return true;
             }
 
@@ -257,8 +247,7 @@ namespace Meowdoku
                 config = new TutorialGuideConfig(
                     new Coord(0, catCoord.Column),
                     new Coord(board.Size - 1, catCoord.Column),
-                    TutorialGuideMode.Drag,
-                    $"Drag down column {catCoord.Column + 1} to place crosses to mark more ruled-out spaces.");
+                    TutorialGuideMode.Drag);
                 return true;
             }
 
@@ -267,8 +256,7 @@ namespace Meowdoku
                 config = new TutorialGuideConfig(
                     new Coord(catCoord.Row, 0),
                     new Coord(catCoord.Row, board.Size - 1),
-                    TutorialGuideMode.Drag,
-                    $"Drag across row {catCoord.Row + 1} to place crosses in spaces ruled out by {letterLabel}.");
+                    TutorialGuideMode.Drag);
                 return true;
             }
 
@@ -318,8 +306,7 @@ namespace Meowdoku
                     config = new TutorialGuideConfig(
                         new Coord(row, startColumn),
                         new Coord(row, endColumn),
-                        startColumn == endColumn ? TutorialGuideMode.Tap : TutorialGuideMode.Drag,
-                        "Place crosses around the cat because cats cannot touch.");
+                        startColumn == endColumn ? TutorialGuideMode.Tap : TutorialGuideMode.Drag);
                     return true;
                 }
             }
@@ -331,8 +318,7 @@ namespace Meowdoku
         {
             return left.StartCoord.Equals(right.StartCoord)
                 && left.EndCoord.Equals(right.EndCoord)
-                && left.Mode == right.Mode
-                && left.Message == right.Message;
+                && left.Mode == right.Mode;
         }
 
         private bool TutorialRowHasAllCrosses(PuzzleBoard board, int row)
@@ -433,7 +419,7 @@ namespace Meowdoku
             handRect.anchoredPosition = center + new Vector2(cellSize * 0.34f, -cellSize * 0.34f);
             float handScale = Mathf.Lerp(1f, 0.94f, Mathf.Clamp01(press));
             handRect.localScale = Vector3.one * handScale;
-            tutorialGuideText.text = config.Message;
+
         }
 
         public void StopGuide()
@@ -443,11 +429,6 @@ namespace Meowdoku
             if (tutorialGuideRoot != null)
             {
                 tutorialGuideRoot.gameObject.SetActive(false);
-            }
-
-            if (tutorialGuideText != null)
-            {
-                tutorialGuideText.text = string.Empty;
             }
 
             if (focusRingImage != null)

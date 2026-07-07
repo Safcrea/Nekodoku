@@ -1,4 +1,3 @@
-using System.Collections;
 using UnityEngine;
 
 namespace Meowdoku
@@ -14,15 +13,9 @@ namespace Meowdoku
     /// every Awake() has run before any Start() runs). The sibling components
     /// have no Awake() logic of their own for the same reason.
     /// </summary>
-    [RequireComponent(typeof(BoardView))]
-    [RequireComponent(typeof(GameplayScreen))]
-    [RequireComponent(typeof(TutorialController))]
     [RequireComponent(typeof(BoardInputHandler))]
-    [RequireComponent(typeof(LifeHearts))]
     public sealed class GameManager : MonoBehaviour
     {
-        private const float LevelCompleteAdvanceSeconds = 1.2f;
-
         [SerializeField]
         private LevelDatabase levelDatabase;
 
@@ -30,29 +23,28 @@ namespace Meowdoku
 
         [Header("Script References")]
         [SerializeField] private BoardView boardView;
-        [SerializeField] private GameplayScreen hudView;
+        [SerializeField] private GameplayScreen gameplayScreen;
         [SerializeField] private TutorialController tutorialController;
         [SerializeField] private BoardInputHandler inputHandler;
-        [SerializeField] private LifeHearts lifeHearts;
-        [SerializeField] private WinScreen winScreen;
+        [SerializeField] private LevelCompleteScreen winScreen;
+        [SerializeField] private LevelFailedScreen levelFailedScreen;
 
         private Level[] levels;
         private PuzzleBoard board;
         private int levelIndex;
-        private Coroutine levelAdvanceRoutine;
 
         public PuzzleBoard Board => board;
 
         private void Start()
         {
-            tutorialController.Initialize(boardView);
-            inputHandler.Initialize(this, boardView, tutorialController, lifeHearts);
-
-            boardView.CacheRestPosition();
+            tutorialController?.Initialize(boardView);
+            inputHandler.Initialize(this, boardView, tutorialController, gameplayScreen);
+            winScreen.NextRequested += NextLevel;
+            levelFailedScreen.RetryRequested += RestartLevel;
 
             LevelLoader levelLoader = new LevelLoader(levelDatabase);
             levels = levelLoader.LoadLevels();
-            LoadLevel(0);
+            LoadLevel(GetSavedLevelIndex());
         }
 
         public void SaveUndo()
@@ -72,30 +64,29 @@ namespace Meowdoku
                 return;
             }
 
-            StopLevelAdvance();
             inputHandler.CancelCatReveal();
-            boardView.StopAllJuice(board); tutorialController.StopGuide();
+            boardView.StopAllJuice();
+            tutorialController?.StopGuide();
             NekoUndoStack.Apply(board, snapshot);
             Refresh();
-            tutorialController.UpdateGuide(levelIndex, board, true);
+            tutorialController?.UpdateGuide(levelIndex, board, true);
         }
 
-        /// <summary>The big per-action sync: HUD, hearts, board visuals, tutorial, win screen, level-advance check.</summary>
+        /// <summary>The big per-action sync: HUD, hearts, board visuals, tutorial, win/fail screens.</summary>
         public void Refresh()
         {
             ValidationResult validation = board.Validate();
-            hudView.Refresh(levelIndex, board.Level, validation);
-            lifeHearts.Refresh(validation.HeartsRemaining, validation.IsFailed);
-            boardView.RefreshVisuals(board, validation, inputHandler.InputLocked);
+            gameplayScreen.Refresh(levelIndex, board.Level, validation);
+            boardView.RefreshVisuals(board, inputHandler.InputLocked);
 
-            tutorialController.UpdatePanel(levelIndex, board, false);
+            tutorialController?.UpdatePanel(levelIndex, board, false);
             if (validation.IsSolved)
             {
-                tutorialController.StopGuide();
+                tutorialController?.StopGuide();
             }
             else
             {
-                tutorialController.UpdateGuide(levelIndex, board, false);
+                tutorialController?.UpdateGuide(levelIndex, board, false);
             }
 
             bool shouldShowWin = validation.IsSolved && !inputHandler.InputLocked;
@@ -108,7 +99,20 @@ namespace Meowdoku
                 winScreen.Hide();
             }
 
-            UpdateSolvedLevelAdvance(validation.IsSolved);
+            bool shouldShowFailed = validation.IsFailed && !inputHandler.InputLocked;
+            if (shouldShowFailed)
+            {
+                levelFailedScreen.ShowFailAnimation();
+            }
+            else
+            {
+                levelFailedScreen.Hide();
+            }
+        }
+
+        public void ResetCrosses()
+        {
+            inputHandler.ResetCrosses();
         }
 
         private void LoadLevel(int nextLevelIndex)
@@ -119,22 +123,23 @@ namespace Meowdoku
             }
 
             inputHandler.CancelCatReveal();
-            boardView.StopIntro(board, inputHandler.InputLocked);
-            StopLevelAdvance();
-            boardView.StopAllJuice(board);
-            tutorialController.StopPulse();
-            tutorialController.StopGuide();
+            boardView.StopIntro(inputHandler.InputLocked);
+            boardView.StopAllJuice();
+            tutorialController?.StopPulse();
+            tutorialController?.StopGuide();
             winScreen.Hide();
+            levelFailedScreen.Hide();
 
             levelIndex = Mathf.Clamp(nextLevelIndex, 0, levels.Length - 1);
+            SaveCurrentLevelNumber();
             board = new PuzzleBoard(levels[levelIndex]);
             undoStack.Clear();
             boardView.RebuildCells(board, inputHandler);
             Refresh();
-            tutorialController.UpdatePanel(levelIndex, board, true);
-            boardView.PlayIntro(board, inputHandler.InputLocked);
-            tutorialController.UpdateGuide(levelIndex, board, true);
-            lifeHearts.PlayIntro();
+            tutorialController?.UpdatePanel(levelIndex, board, true);
+            boardView.PlayIntro(inputHandler.InputLocked);
+            tutorialController?.UpdateGuide(levelIndex, board, true);
+            gameplayScreen.PlayIntro();
         }
 
         private void PreviousLevel()
@@ -165,51 +170,35 @@ namespace Meowdoku
             }
 
             inputHandler.CancelCatReveal();
-            StopLevelAdvance();
-            boardView.StopAllJuice(board);
-            tutorialController.StopPulse();
-            tutorialController.StopGuide();
+            boardView.StopAllJuice();
+            tutorialController?.StopPulse();
+            tutorialController?.StopGuide();
             winScreen.Hide();
+            levelFailedScreen.Hide();
 
             board.Clear();
             undoStack.Clear();
             Refresh();
-            tutorialController.UpdatePanel(levelIndex, board, true);
-            boardView.PlayIntro(board, inputHandler.InputLocked);
-            tutorialController.UpdateGuide(levelIndex, board, true);
-            lifeHearts.PlayIntro();
+            tutorialController?.UpdatePanel(levelIndex, board, true);
+            boardView.PlayIntro(inputHandler.InputLocked);
+            tutorialController?.UpdateGuide(levelIndex, board, true);
+            gameplayScreen.PlayIntro();
         }
 
-        private void StopLevelAdvance()
+        private static int GetSavedLevelIndex()
         {
-            if (levelAdvanceRoutine == null)
-            {
-                return;
-            }
+            int savedLevelNumber = PlayerPrefs.GetInt(
+                GameConstants.CurrentLevelNumberPlayerPrefsKey,
+                GameConstants.FirstLevelNumber);
 
-            StopCoroutine(levelAdvanceRoutine);
-            levelAdvanceRoutine = null;
+            return Mathf.Max(GameConstants.FirstLevelNumber, savedLevelNumber) - GameConstants.FirstLevelNumber;
         }
 
-        private void UpdateSolvedLevelAdvance(bool isSolved)
+        private void SaveCurrentLevelNumber()
         {
-            if (!isSolved || inputHandler.InputLocked)
-            {
-                StopLevelAdvance();
-                return;
-            }
-
-            if (levelAdvanceRoutine == null && isActiveAndEnabled)
-            {
-                levelAdvanceRoutine = StartCoroutine(AdvanceToNextLevelAfterDelay());
-            }
-        }
-
-        private IEnumerator AdvanceToNextLevelAfterDelay()
-        {
-            yield return new WaitForSecondsRealtime(LevelCompleteAdvanceSeconds);
-            levelAdvanceRoutine = null;
-            NextLevel();
+            int currentLevelNumber = levelIndex + GameConstants.FirstLevelNumber;
+            PlayerPrefs.SetInt(GameConstants.CurrentLevelNumberPlayerPrefsKey, currentLevelNumber);
+            PlayerPrefs.Save();
         }
     }
 }

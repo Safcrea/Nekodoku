@@ -95,12 +95,6 @@ namespace Meowdoku
         {
             return Contains(row, column) && lockedCats[row, column];
         }
-
-        public char GetLetterForCat(int row, int column)
-        {
-            return Level.LetterForCat(row, column);
-        }
-
         public int GetCatIndex(int row, int column)
         {
             return Level.IndexOfCat(row, column);
@@ -146,6 +140,24 @@ namespace Meowdoku
         public bool ClearCross(int row, int column)
         {
             return SetCross(row, column, false);
+        }
+
+        public bool ClearPlayerCrosses()
+        {
+            bool changed = false;
+            for (int row = 0; row < Size; row++)
+            {
+                for (int column = 0; column < Size; column++)
+                {
+                    if (!revealed[row, column] && marks[row, column] == CellMark.Cross)
+                    {
+                        marks[row, column] = CellMark.Empty;
+                        changed = true;
+                    }
+                }
+            }
+
+            return changed;
         }
 
         public CommitResult CommitCat(int row, int column)
