@@ -1,0 +1,38 @@
+{
+    "formatVersion": 1,
+    "id": "tutorial-lesson",
+    "title": "Learn the Rules",
+    "size": 4,
+    "regions": [
+        "0001",
+        "0011",
+        "2231",
+        "2333"
+    ],
+    "cats": [
+        {
+            "row": 0,
+            "column": 1,
+            "letter": "P",
+            "locked": false
+        },
+        {
+            "row": 1,
+            "column": 3,
+            "letter": "L",
+            "locked": false
+        },
+        {
+            "row": 2,
+            "column": 0,
+            "letter": "A",
+            "locked": false
+        },
+        {
+            "row": 3,
+            "column": 2,
+            "letter": "Y",
+            "locked": false
+        }
+    ]
+}

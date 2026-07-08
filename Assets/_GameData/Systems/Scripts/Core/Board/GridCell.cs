@@ -6,6 +6,12 @@ using UnityEngine.UI;
 
 namespace Meowdoku
 {
+    public enum TutorialDimMode
+    {
+        None,
+        NotRequired
+    }
+
     /// <summary>
     /// Lives on the root of the Cell prefab (Assets/_GameData/Systems/Prefabs/Grid Cell.prefab).
     /// Four visuals - base (region color), cross (live mark), cat, and NoCatImg (revealed
@@ -51,14 +57,31 @@ namespace Meowdoku
         [SerializeField] private float CrossJellyScaleImpulse = 6f;
         [SerializeField] private float WrongPunchScaleImpulse = 5f;
         [SerializeField] private float RevealedBaseAlpha = 0.6f;
+        [SerializeField] private float TutorialDimmedAlpha = 0.28f;
+        [SerializeField] private float TutorialDimFadeSeconds = 0.18f;
+        [SerializeField] private float BaseShadeFadeSeconds = 0.16f;
+        [SerializeField] private Color CrossToggleHighlightColor = new Color(1f, 0.92f, 0.55f, 1f);
+        [SerializeField] private float CrossToggleHighlightStrength = 0.75f;
+        [SerializeField] private float CrossToggleHighlightInSeconds = 0.06f;
+        [SerializeField] private float CrossToggleHighlightOutSeconds = 0.18f;
+        [SerializeField] private float HintMinAlpha = 0.2f;
+        [SerializeField] private float HintMaxAlpha = 0.55f;
+        [SerializeField] private float HintPulseSeconds = 0.55f;
 
 
-        public RectTransform Rect { get; private set; }
+        /// <summary>
+        /// Computed rather than cached from Awake() - a cell freshly Instantiate()'d into an
+        /// inactive-at-the-time hierarchy (e.g. under a HUD panel that's hidden while the tutorial's
+        /// board is being rebuilt) defers Awake() until it becomes active, which left this null for
+        /// anything that queried it (e.g. the tutorial's hand-guide) before then. transform itself
+        /// needs no lifecycle to be valid.
+        /// </summary>
+        public RectTransform Rect => (RectTransform)transform;
+
         public int Row { get; private set; }
         public int Column { get; private set; }
 
         private BoardInputHandler inputHandler;
-        private Color regionColor = Color.white;
         private CellMark lastMark;
         private bool lastRevealedCat;
         private bool lastRevealedMiss;
@@ -69,12 +92,19 @@ namespace Meowdoku
         private bool catReactionPlaying;
         private bool crossResetPreviewVisible;
         private Tween crossResetTween;
+        private Tween baseColorTween;
         private bool catRevealFlipInProgress;
         private bool catRevealFrontShown;
+        private TutorialDimMode tutorialDimMode;
+        private Color targetBaseColor = Color.white;
+        private bool baseColorInitialized;
+        private Tween catHintTween;
+        private bool catHintActive;
+        private Tween crossHintTween;
+        private bool crossHintActive;
 
         private void Awake()
         {
-            Rect = (RectTransform)transform;
             crossImage.raycastTarget = false;
             catImage.raycastTarget = false;
             noCatImage.raycastTarget = false;
@@ -107,6 +137,14 @@ namespace Meowdoku
 
             catReactionPlaying = false;
             CancelCrossResetPreview();
+            baseColorTween?.Kill();
+            baseColorTween = null;
+            catHintTween?.Kill();
+            catHintTween = null;
+            catHintActive = false;
+            crossHintTween?.Kill();
+            crossHintTween = null;
+            crossHintActive = false;
             catRevealFlipInProgress = false;
             catRevealFrontShown = false;
         }
@@ -121,13 +159,131 @@ namespace Meowdoku
 
         public void SetRegion(int regionIndex)
         {
-            regionColor = regionPalette != null ? regionPalette.ColorForRegion(regionIndex) : Color.white;
-            baseImage.color = regionColor;
+            if (baseImage != null)
+            {
+                baseImage.sprite = regionPalette != null ? regionPalette.SpriteForRegion(regionIndex) : null;
+            }
+
+            SetBaseColorImmediate(ComputeBaseColor(lastRevealedCat));
         }
 
         public void SetInteractable(bool interactable)
         {
             canvasGroup.blocksRaycasts = interactable;
+        }
+
+        /// <summary>
+        /// Applies tutorial dimming without rewriting alpha when the mode is unchanged. RefreshVisuals
+        /// runs constantly, so this avoids fighting intro-pop's own fade tween outside real dim changes.
+        /// </summary>
+        public void SetTutorialDimMode(TutorialDimMode dimMode)
+        {
+            if (dimMode == tutorialDimMode)
+            {
+                return;
+            }
+
+            tutorialDimMode = dimMode;
+            canvasGroup.DOKill();
+            float targetAlpha = AlphaForTutorialDimMode(dimMode);
+            if (!isActiveAndEnabled || TutorialDimFadeSeconds <= 0f)
+            {
+                canvasGroup.alpha = targetAlpha;
+                return;
+            }
+
+            canvasGroup.DOFade(targetAlpha, TutorialDimFadeSeconds)
+                .SetEase(Ease.OutSine)
+                .SetUpdate(true);
+        }
+
+        private float AlphaForTutorialDimMode(TutorialDimMode dimMode)
+        {
+            return dimMode switch
+            {
+                TutorialDimMode.NotRequired => TutorialDimmedAlpha,
+                _ => 1f,
+            };
+        }
+
+        // ---- tutorial hint (fade in/out loop pointing at an unrevealed cat or an uncrossed cell) ----
+
+        /// <summary>
+        /// Loops the cat visual's opacity to hint "there is a cat here" without actually revealing it
+        /// (board state/mark are untouched). While active, <see cref="ApplyVisualState"/> leaves the cat
+        /// image alone so it doesn't fight the loop; turning the hint off re-applies real state immediately.
+        /// </summary>
+        public void SetCatHint(bool active)
+        {
+            if (catHintActive == active)
+            {
+                return;
+            }
+
+            catHintActive = active;
+            catHintTween?.Kill();
+            catHintTween = null;
+            catImage.DOKill();
+
+            if (!active)
+            {
+                catImage.color = Color.white;
+                ApplyVisualState(lastMark, lastRevealedCat, lastRevealedMiss);
+                return;
+            }
+
+            catImage.enabled = true;
+            Color color = Color.white;
+            color.a = HintMinAlpha;
+            catImage.color = color;
+
+            if (catAnimator != null && !catReactionPlaying)
+            {
+                catAnimator.Play(RevealedAnimationName, false);
+            }
+
+            catHintTween = catImage.DOFade(HintMaxAlpha, HintPulseSeconds)
+                .SetEase(Ease.InOutSine)
+                .SetLoops(-1, LoopType.Yoyo)
+                .SetUpdate(true);
+        }
+
+        /// <summary>Loops the cross visual's opacity to hint "cross this cell" without actually marking it.</summary>
+        public void SetCrossHint(bool active)
+        {
+            if (crossHintActive == active)
+            {
+                return;
+            }
+
+            crossHintActive = active;
+            crossHintTween?.Kill();
+            crossHintTween = null;
+            crossImage.DOKill();
+
+            if (!active)
+            {
+                crossImage.color = Color.white;
+                ApplyVisualState(lastMark, lastRevealedCat, lastRevealedMiss);
+                return;
+            }
+
+            crossImage.enabled = true;
+            Color color = Color.white;
+            color.a = HintMinAlpha;
+            crossImage.color = color;
+
+            crossHintTween = crossImage.DOFade(HintMaxAlpha, HintPulseSeconds)
+                .SetEase(Ease.InOutSine)
+                .SetLoops(-1, LoopType.Yoyo)
+                .SetUpdate(true);
+        }
+
+        /// <summary>Stops both hint loops if running. Safe to call unconditionally.</summary>
+        public void ClearHint()
+        {
+            SetCatHint(false);
+            SetCrossHint(false);
         }
 
         /// <summary>Syncs static appearance to the current board state. Called every gameplay refresh.</summary>
@@ -146,13 +302,20 @@ namespace Meowdoku
                 CancelCrossResetPreview();
             }
 
-            catImage.enabled = revealedCat && (!catRevealFlipInProgress || catRevealFrontShown);
-            catImage.color = Color.white;
-            crossImage.enabled = (!revealedCat && mark == CellMark.Cross) || crossResetPreviewVisible;
-            crossImage.color = Color.white;
+            if (!catHintActive)
+            {
+                catImage.enabled = revealedCat && (!catRevealFlipInProgress || catRevealFrontShown);
+                catImage.color = Color.white;
+            }
+
+            if (!crossHintActive)
+            {
+                crossImage.enabled = (!revealedCat && mark == CellMark.Cross) || crossResetPreviewVisible;
+                crossImage.color = Color.white;
+            }
             noCatImage.enabled = !revealedCat && revealedMiss;
             noCatImage.color = Color.red;
-            baseImage.color = ComputeBaseColor(revealedCat);
+            FadeBaseColorTo(ComputeBaseColor(revealedCat), BaseShadeFadeSeconds);
 
             if (revealedCat)
             {
@@ -191,11 +354,87 @@ namespace Meowdoku
             }).SetUpdate(true);
         }
 
+        /// <summary>Region identity now lives entirely in <see cref="baseImage"/>'s sprite (assigned in
+        /// <see cref="SetRegion"/>), so this only ever fades alpha - never tints toward a region hue.</summary>
         private Color ComputeBaseColor(bool revealedCat)
         {
-            Color color = regionColor;
+            Color color = Color.white;
             color.a = revealedCat ? RevealedBaseAlpha : 1f;
             return color;
+        }
+
+        private void FadeBaseColorTo(Color color, float seconds)
+        {
+            targetBaseColor = color;
+            if (baseImage == null)
+            {
+                return;
+            }
+
+            if (!baseColorInitialized || !isActiveAndEnabled || seconds <= 0f)
+            {
+                SetBaseColorImmediate(color);
+                return;
+            }
+
+            if (ColorsApproximately(baseImage.color, color))
+            {
+                return;
+            }
+
+            baseColorTween?.Kill();
+            baseImage.DOKill();
+            baseColorTween = baseImage.DOColor(color, seconds)
+                .SetEase(Ease.OutSine)
+                .SetUpdate(true)
+                .OnComplete(() => baseColorTween = null);
+        }
+
+        private void SetBaseColorImmediate(Color color)
+        {
+            targetBaseColor = color;
+            baseColorInitialized = true;
+            baseColorTween?.Kill();
+            baseColorTween = null;
+
+            if (baseImage != null)
+            {
+                baseImage.DOKill();
+                baseImage.color = color;
+            }
+        }
+
+        /// <summary>
+        /// Flashes toward <see cref="CrossToggleHighlightColor"/> rather than <see cref="Color.white"/> -
+        /// now that region identity lives in <see cref="baseImage"/>'s sprite (not a saturated tint),
+        /// <see cref="targetBaseColor"/> sits near-white already, so lerping toward white would be a no-op.
+        /// </summary>
+        private void PlayCrossToggleHighlight()
+        {
+            if (baseImage == null)
+            {
+                return;
+            }
+
+            baseColorTween?.Kill();
+            baseImage.DOKill();
+
+            Color flashColor = Color.Lerp(targetBaseColor, CrossToggleHighlightColor, Mathf.Clamp01(CrossToggleHighlightStrength));
+            flashColor.a = targetBaseColor.a;
+
+            Sequence sequence = DOTween.Sequence().SetUpdate(true);
+            sequence.Append(baseImage.DOColor(flashColor, CrossToggleHighlightInSeconds).SetEase(Ease.OutSine));
+            sequence.Append(baseImage.DOColor(targetBaseColor, CrossToggleHighlightOutSeconds).SetEase(Ease.InOutSine));
+            sequence.OnComplete(() => baseColorTween = null);
+            baseColorTween = sequence;
+        }
+
+        private static bool ColorsApproximately(Color a, Color b)
+        {
+            return Mathf.Approximately(a.r, b.r)
+                && Mathf.Approximately(a.g, b.g)
+                && Mathf.Approximately(a.b, b.b)
+                && Mathf.Approximately(a.a, b.a);
         }
 
         // ---- intro ----
@@ -226,7 +465,7 @@ namespace Meowdoku
 
         public void PlayCrossJelly()
         {
-            baseImage.DOKill();
+            PlayCrossToggleHighlight();
 
             if (gridCellSpring != null)
             {
@@ -287,8 +526,16 @@ namespace Meowdoku
         public void StopJuice()
         {
             Rect.DOKill();
+            baseColorTween?.Kill();
+            baseColorTween = null;
             baseImage.DOKill();
             catImage.DOKill();
+            catHintTween?.Kill();
+            catHintTween = null;
+            catHintActive = false;
+            crossHintTween?.Kill();
+            crossHintTween = null;
+            crossHintActive = false;
             Rect.localScale = Vector3.one;
             CancelCrossResetPreview();
             catRevealFlipInProgress = false;
@@ -306,6 +553,7 @@ namespace Meowdoku
             }
 
             ApplyVisualState(lastMark, lastRevealedCat, lastRevealedMiss);
+            SetBaseColorImmediate(ComputeBaseColor(lastRevealedCat));
         }
 
         // ---- input ----
@@ -398,15 +646,12 @@ namespace Meowdoku
             Rect.localScale = Vector3.one;
             gridCellSpring.SpringRotationEnabled = true;
             gridCellSpring.SetUnifiedForceAndDragRotation(CatRevealFlipRotationForce, CatRevealFlipRotationDrag);
-            gridCellSpring.AddVelocityScale(Vector3.one * -20f);
-            DOVirtual.DelayedCall(0.01f, () =>
-            {
-                gridCellSpring.SetCurrentValueRotation(new Vector3(0f, 180f, 0f));
-                gridCellSpring.SetTargetRotation(new Vector3(0f, 180f, 0f));
-                gridCellSpring.SetVelocityRotation(Vector3.zero);
-                Rect.localRotation = Quaternion.Euler(0f, 180f, 0f);
-                gridCellSpring.SetTargetRotation(Vector3.zero);
-            });
+            gridCellSpring.AddVelocityScale(Vector3.one * -5f);
+            gridCellSpring.SetCurrentValueRotation(new Vector3(0f, 180f, 0f));
+            gridCellSpring.SetTargetRotation(new Vector3(0f, 180f, 0f));
+            gridCellSpring.SetVelocityRotation(Vector3.zero);
+            Rect.localRotation = Quaternion.Euler(0f, 180f, 0f);
+            gridCellSpring.SetTargetRotation(Vector3.zero);
         }
 
         private void UpdateCatRevealFrontFace()

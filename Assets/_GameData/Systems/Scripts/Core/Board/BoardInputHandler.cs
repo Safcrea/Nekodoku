@@ -3,6 +3,10 @@ using System.Collections.Generic;
 using DG.Tweening;
 using UnityEngine;
 using UnityEngine.EventSystems;
+using InputSystemMouse = UnityEngine.InputSystem.Mouse;
+using InputSystemTouchControl = UnityEngine.InputSystem.Controls.TouchControl;
+using InputSystemTouchPhase = UnityEngine.InputSystem.TouchPhase;
+using InputSystemTouchscreen = UnityEngine.InputSystem.Touchscreen;
 
 namespace Meowdoku
 {
@@ -22,7 +26,6 @@ namespace Meowdoku
 
         private GameManager gameManager;
         private BoardView boardView;
-        private TutorialController tutorialController;
         private GameplayScreen gameplayScreen;
 
         private bool inputLocked;
@@ -41,11 +44,10 @@ namespace Meowdoku
 
         public bool InputLocked => inputLocked;
 
-        public void Initialize(GameManager manager, BoardView board, TutorialController tutorial, GameplayScreen screen)
+        public void Initialize(GameManager manager, BoardView board, GameplayScreen screen)
         {
             gameManager = manager;
             boardView = board;
-            tutorialController = tutorial;
             gameplayScreen = screen;
         }
 
@@ -87,7 +89,7 @@ namespace Meowdoku
 
         public void CommitCat(int row, int column)
         {
-            if (inputLocked)
+            if (inputLocked || gameManager.IsLessonCommitBlocked)
             {
                 return;
             }
@@ -153,7 +155,6 @@ namespace Meowdoku
             CancelCatReveal();
             inputLocked = true;
             crossDragging = false;
-            tutorialController?.StopGuide();
             GameHaptics.Success();
             SoundManager.PlaySound(SFX.CatFound);
             catRevealRoutine = StartCoroutine(RunCatRevealSequence(row, column));
@@ -293,19 +294,29 @@ namespace Meowdoku
                 return;
             }
 
-            if (Input.touchCount > 0)
+            UpdateOffTileCrossDragInputSystem();
+        }
+
+        private void UpdateOffTileCrossDragInputSystem()
+        {
+            if (UpdateOffTileTouchDragInputSystem())
             {
-                UpdateOffTileTouchDrag();
                 return;
             }
 
-            UpdateOffTileMouseDrag();
+            UpdateOffTileMouseDragInputSystem();
         }
 
-        private void UpdateOffTileMouseDrag()
+        private void UpdateOffTileMouseDragInputSystem()
         {
-            Vector2 pointerPosition = Input.mousePosition;
-            if (Input.GetMouseButtonDown(0))
+            InputSystemMouse mouse = InputSystemMouse.current;
+            if (mouse == null)
+            {
+                return;
+            }
+
+            Vector2 pointerPosition = mouse.position.ReadValue();
+            if (mouse.leftButton.wasPressedThisFrame)
             {
                 BeginOffTilePointerTracking(pointerPosition, MousePointerId);
             }
@@ -315,58 +326,88 @@ namespace Meowdoku
                 return;
             }
 
-            if (Input.GetMouseButton(0))
+            if (mouse.leftButton.isPressed)
             {
                 TryContinueOffTileCrossDrag(pointerPosition);
             }
 
-            if (Input.GetMouseButtonUp(0))
+            if (mouse.leftButton.wasReleasedThisFrame)
             {
                 EndOffTileCrossDrag();
             }
         }
 
-        private void UpdateOffTileTouchDrag()
+        private bool UpdateOffTileTouchDragInputSystem()
         {
-            Touch? trackedTouch = null;
-            for (int i = 0; i < Input.touchCount; i++)
+            InputSystemTouchscreen touchscreen = InputSystemTouchscreen.current;
+            if (touchscreen == null)
             {
-                Touch touch = Input.GetTouch(i);
-                if (offTilePointerTracking)
+                return false;
+            }
+
+            bool sawActiveTouch = false;
+            bool trackedTouchFound = false;
+            InputSystemTouchControl trackedTouch = null;
+
+            for (int i = 0; i < touchscreen.touches.Count; i++)
+            {
+                InputSystemTouchControl touch = touchscreen.touches[i];
+                InputSystemTouchPhase phase = touch.phase.ReadValue();
+                int touchId = touch.touchId.ReadValue();
+
+                if (IsInputSystemTouchActive(phase))
                 {
-                    if (touch.fingerId == offTilePointerId)
-                    {
-                        trackedTouch = touch;
-                        break;
-                    }
+                    sawActiveTouch = true;
                 }
-                else if (touch.phase == TouchPhase.Began)
+
+                if (offTilePointerTracking && touchId == offTilePointerId)
                 {
-                    BeginOffTilePointerTracking(touch.position, touch.fingerId);
                     trackedTouch = touch;
+                    trackedTouchFound = true;
+                    break;
+                }
+
+                if (!offTilePointerTracking && phase == InputSystemTouchPhase.Began)
+                {
+                    BeginOffTilePointerTracking(touch.position.ReadValue(), touchId);
+                    trackedTouch = touch;
+                    trackedTouchFound = offTilePointerTracking;
                     break;
                 }
             }
 
+            if (!sawActiveTouch && !offTilePointerTracking)
+            {
+                return false;
+            }
+
             if (!offTilePointerTracking)
             {
-                return;
+                return true;
             }
 
-            if (!trackedTouch.HasValue)
+            if (!trackedTouchFound || trackedTouch == null)
             {
                 EndOffTileCrossDrag();
-                return;
+                return true;
             }
 
-            Touch touchValue = trackedTouch.Value;
-            if (touchValue.phase == TouchPhase.Ended || touchValue.phase == TouchPhase.Canceled)
+            InputSystemTouchPhase trackedPhase = trackedTouch.phase.ReadValue();
+            if (trackedPhase == InputSystemTouchPhase.Ended || trackedPhase == InputSystemTouchPhase.Canceled)
             {
                 EndOffTileCrossDrag();
-                return;
+                return true;
             }
 
-            TryContinueOffTileCrossDrag(touchValue.position);
+            TryContinueOffTileCrossDrag(trackedTouch.position.ReadValue());
+            return true;
+        }
+
+        private static bool IsInputSystemTouchActive(InputSystemTouchPhase phase)
+        {
+            return phase == InputSystemTouchPhase.Began
+                || phase == InputSystemTouchPhase.Moved
+                || phase == InputSystemTouchPhase.Stationary;
         }
 
         private void BeginOffTilePointerTracking(Vector2 screenPosition, int pointerId)
