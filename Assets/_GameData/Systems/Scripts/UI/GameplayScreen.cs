@@ -43,5 +43,13 @@ namespace Meowdoku
         {
             catBasket.PlayCatCollected();
         }
+
+        /// <summary>Hides the whole HUD strip - used while the tutorial lesson board is active, since
+        /// its level number/hearts/cat-count aren't meaningful until the lesson is actually done.</summary>
+        public void SetHudVisible(bool visible)
+        {
+            lifeHearts.gameObject.SetActive(visible);
+            titleText.gameObject.SetActive(visible);
+        }
     }
 }

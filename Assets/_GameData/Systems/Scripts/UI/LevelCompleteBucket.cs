@@ -21,7 +21,6 @@ namespace Meowdoku
         [SerializeField] private SpriteSheetAnimator catSlotAnimationLibrary;
         [SerializeField] private SpriteSheetAnimationPlayer[] catSlotAnimationPlayers;
         [SerializeField] private TransformSpringComponent bucketSpring;
-        [SerializeField] private TransformSpringComponent[] catSlotSprings;
 
         [Header("Tuning")]
         [SerializeField] private float riseSeconds = 0.5f;
@@ -34,7 +33,6 @@ namespace Meowdoku
         [SerializeField] private float bucketRiseVelocity = 2600f;
         [SerializeField] private float bucketLandingScaleImpulse = 2.2f;
         [SerializeField] private float bucketLandingPositionImpulse = 80f;
-        [SerializeField] private float slotMovePositionImpulse = 90f;
 
         private Vector3 restLocalPosition;
         private Vector3[] slotRestLocalPositions;
@@ -91,27 +89,6 @@ namespace Meowdoku
         private void ResolveSprings()
         {
             bucketSpring = ResolveSpring(bucketRoot, bucketSpring, 130f, 11f);
-
-            if (catSlotImages == null)
-            {
-                return;
-            }
-
-            if (catSlotSprings == null || catSlotSprings.Length != catSlotImages.Length)
-            {
-                Array.Resize(ref catSlotSprings, catSlotImages.Length);
-            }
-
-            for (int i = 0; i < catSlotImages.Length; i++)
-            {
-                Image slot = catSlotImages[i];
-                if (slot == null)
-                {
-                    continue;
-                }
-
-                catSlotSprings[i] = ResolveSpring(slot.rectTransform, catSlotSprings[i], 170f, 12f);
-            }
         }
 
         private void ResolveSlotAnimationPlayers()
@@ -222,7 +199,6 @@ namespace Meowdoku
             }
 
             RectTransform rect = slot.rectTransform;
-            TransformSpringComponent slotSpring = catSlotSprings != null && index < catSlotSprings.Length ? catSlotSprings[index] : null;
             Vector3 restPosition = SlotRestPosition(index, rect);
             Vector3 startPosition = restPosition + Vector3.up * RandomSlotYOffset();
 
@@ -238,18 +214,8 @@ namespace Meowdoku
                 Color hiddenColor = slot.color;
                 hiddenColor.a = 0f;
                 slot.color = hiddenColor;
-
-                if (slotSpring != null)
-                {
-                    SnapSpring(slotSpring, rect, startPosition, Vector3.one, rect.localRotation);
-                    slotSpring.SetTargetPosition(restPosition);
-                    slotSpring.AddVelocityPosition(Vector3.up * -Mathf.Sign(startPosition.y - restPosition.y) * slotMovePositionImpulse);
-                }
-                else
-                {
-                    rect.localPosition = startPosition;
-                    rect.localScale = Vector3.one;
-                }
+                rect.localPosition = startPosition;
+                rect.localScale = Vector3.one * 0.92f;
 
                 if (playBucketImpact)
                 {
@@ -260,13 +226,14 @@ namespace Meowdoku
                 }
             });
 
-            Tween moveTween = slotSpring != null
-                ? DOVirtual.DelayedCall(slotMoveSeconds, () => { }, false).SetUpdate(true)
-                : rect.DOLocalMove(restPosition, slotMoveSeconds).SetEase(Ease.OutCubic).SetUpdate(true);
-
-            sequence.Append(moveTween);
+            sequence.Append(rect.DOLocalMove(restPosition, slotMoveSeconds).SetEase(Ease.OutBack));
+            sequence.Join(rect.DOScale(1f, slotMoveSeconds).SetEase(Ease.OutBack));
             sequence.Join(slot.DOFade(1f, slotFadeSeconds).SetEase(Ease.OutSine));
-            sequence.AppendCallback(() => SnapSpring(slotSpring, rect, restPosition, Vector3.one, rect.localRotation));
+            sequence.AppendCallback(() =>
+            {
+                rect.localPosition = restPosition;
+                rect.localScale = Vector3.one;
+            });
             return sequence;
         }
 
@@ -279,6 +246,32 @@ namespace Meowdoku
             }
 
             player.Play(RevealedAnimationName, true);
+        }
+
+        /// <summary>Sends the bucket back down below the screen (does not fade - it drops out of view).</summary>
+        public void PlayReturnAnimation()
+        {
+            if (bucketRoot == null)
+            {
+                return;
+            }
+
+            gatherSequence?.Kill();
+            gatherSequence = null;
+            bucketRoot.DOKill();
+
+            Vector3 hiddenPosition = HiddenLocalPosition();
+            bucketSpring?.SetTargetPosition(hiddenPosition);
+            bucketSpring?.AddVelocityPosition(Vector3.down * bucketRiseVelocity);
+
+            gatherSequence = DOTween.Sequence().SetUpdate(true);
+            gatherSequence.AppendInterval(riseSeconds);
+            gatherSequence.OnComplete(() =>
+            {
+                gatherSequence = null;
+                bucketRoot.gameObject.SetActive(false);
+                ResetSlots();
+            });
         }
 
         /// <summary>Resets the bucket and its slots so the next win plays cleanly.</summary>
@@ -322,11 +315,9 @@ namespace Meowdoku
                 slot.DOKill();
                 slot.rectTransform.DOKill();
                 SlotAnimationPlayer(i)?.Stop();
+                slot.rectTransform.localPosition = SlotRestPosition(i, slot.rectTransform);
+                slot.rectTransform.localScale = Vector3.one;
 
-                TransformSpringComponent slotSpring = catSlotSprings != null && i < catSlotSprings.Length
-                    ? catSlotSprings[i]
-                    : null;
-                SnapSpring(slotSpring, slot.rectTransform, SlotRestPosition(i, slot.rectTransform), Vector3.one, slot.rectTransform.localRotation);
                 Color hiddenColor = slot.color;
                 hiddenColor.a = 0f;
                 slot.color = hiddenColor;

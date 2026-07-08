@@ -28,6 +28,7 @@ namespace Meowdoku
         private const float StarStaggerSeconds = 0.1f;
 
         private const float NextButtonPulseSeconds = 0.6f;
+        private const float OutroSeconds = 0.28f;
 
         [SerializeField] private LevelCompleteBucket bucket;
 
@@ -55,6 +56,7 @@ namespace Meowdoku
         private int pendingStarsEarned;
         private Sequence panelSequence;
         private Sequence starsSequence;
+        private Sequence outroSequence;
         private Tween nextButtonPulseTween;
 
         public event Action NextRequested;
@@ -67,9 +69,14 @@ namespace Meowdoku
             {
                 button.onClick.AddListener(() =>
                 {
+                    if (!isShowing)
+                    {
+                        return;
+                    }
+
                     GameHaptics.Selection();
                     SoundManager.PlaySound(SFX.ButtonClick);
-                    NextRequested?.Invoke();
+                    PlayOutroAnimation(() => NextRequested?.Invoke());
                 });
             }
 
@@ -90,14 +97,17 @@ namespace Meowdoku
             isShowing = true;
             pendingStarsEarned = validation.HeartsRemaining;
 
-            if (bucket != null)
+            DOVirtual.DelayedCall(0.75f, () =>
             {
-                bucket.PlayGatherCats(PlayPanelSequence);
-            }
-            else
-            {
-                PlayPanelSequence();
-            }
+                if (bucket != null)
+                {
+                    bucket.PlayGatherCats(PlayPanelSequence);
+                }
+                else
+                {
+                    PlayPanelSequence();
+                }
+            }, false).SetUpdate(true);
         }
 
         private void PlayPanelSequence()
@@ -108,7 +118,7 @@ namespace Meowdoku
 
             if (winTypewriter != null)
             {
-                winTypewriter.ShowText(BuildWinMessage());
+                winTypewriter.StopShowingText();
             }
 
             SnapSpring(winPanelSpring, winPanel, winPanel.localPosition, Vector3.one * 0.84f, Quaternion.identity);
@@ -130,6 +140,16 @@ namespace Meowdoku
                 PopSeconds * 1.4f,
                 6,
                 0.7f));
+            // Start the typewriter exactly when the label becomes visible - calling ShowText()
+            // any earlier lets its reveal animation run (and finish) while alpha is still 0,
+            // so it looks static once it fades in.
+            panelSequence.InsertCallback(StaggerSeconds, () =>
+            {
+                if (winTypewriter != null)
+                {
+                    winTypewriter.ShowText(BuildWinMessage());
+                }
+            });
 
             float nextDelay = StaggerSeconds * 2f;
             panelSequence.Insert(nextDelay, nextButtonCanvasGroup.DOFade(1f, PopSeconds * 0.5f));
@@ -152,9 +172,63 @@ namespace Meowdoku
             }, false).SetUpdate(true);
         }
 
+        /// <summary>
+        /// Fades the panel/label/stars/next button out while the bucket drops back below the
+        /// screen, then invokes onComplete. GameManager advances to the next level from there,
+        /// which calls <see cref="Hide"/> to do the (by-then invisible) instant reset.
+        /// </summary>
+        private void PlayOutroAnimation(Action onComplete)
+        {
+            if (!isShowing)
+            {
+                onComplete?.Invoke();
+                return;
+            }
+
+            isShowing = false;
+
+            panelSequence?.Kill();
+            panelSequence = null;
+            nextButtonPulseTween?.Kill();
+            nextButtonPulseTween = null;
+
+            if (winTypewriter != null)
+            {
+                winTypewriter.StopShowingText();
+            }
+
+            outroSequence?.Kill();
+            outroSequence = DOTween.Sequence().SetUpdate(true);
+            outroSequence.Join(winPanelCanvasGroup.DOFade(0f, OutroSeconds));
+            outroSequence.Join(winLabelCanvasGroup.DOFade(0f, OutroSeconds));
+            outroSequence.Join(nextButtonCanvasGroup.DOFade(0f, OutroSeconds));
+
+            if (starFillImages != null)
+            {
+                foreach (Image fill in starFillImages)
+                {
+                    if (fill != null && fill.gameObject.activeSelf)
+                    {
+                        outroSequence.Join(fill.DOFade(0f, OutroSeconds));
+                    }
+                }
+            }
+
+            outroSequence.OnComplete(() =>
+            {
+                outroSequence = null;
+                onComplete?.Invoke();
+            });
+
+            bucket?.PlayReturnAnimation();
+        }
+
         public void Hide()
         {
             isShowing = false;
+
+            outroSequence?.Kill();
+            outroSequence = null;
 
             KillPanelTweens();
 
@@ -199,7 +273,7 @@ namespace Meowdoku
 
         private string BuildWinMessage()
         {
-            return "{bounce}Level Complete!{/bounce}";
+            return "<bounce>{wave}Level Complete{/wave}</bounce>";
         }
 
         // ---- star rating ----
