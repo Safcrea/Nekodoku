@@ -76,14 +76,14 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
   m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_Color: {r: 1, g: 0.19099998, b: 0.84630734, a: 1}
   m_RaycastTarget: 1
   m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
   m_Maskable: 1
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: 7f1e3f3cd32ad4622b05ef14d4beeb75, type: 3}
+  m_Sprite: {fileID: 21300000, guid: 6e2b86e7a04a04fcaa13d6b7280509b4, type: 3}
   m_Type: 0
   m_PreserveAspect: 1
   m_FillCenter: 1
@@ -120,6 +120,16 @@ MonoBehaviour:
   CrossJellyScaleImpulse: 3
   WrongPunchScaleImpulse: 4
   RevealedBaseAlpha: 0.6
+  TutorialDimmedAlpha: 0.28
+  TutorialDimFadeSeconds: 0.18
+  BaseShadeFadeSeconds: 0.16
+  CrossToggleHighlightColor: {r: 1, g: 0.92, b: 0.55, a: 1}
+  CrossToggleHighlightStrength: 0.75
+  CrossToggleHighlightInSeconds: 0.06
+  CrossToggleHighlightOutSeconds: 0.18
+  HintMinAlpha: 0.1
+  HintMaxAlpha: 0.35
+  HintPulseSeconds: 0.55
 --- !u!114 &2403976762330542770
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -438,10 +448,10 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 2565346490947552791}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 111.2361, y: 111.24}
+  m_SizeDelta: {x: -10, y: -10}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &497293497499379814
 CanvasRenderer:
@@ -535,10 +545,10 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 2565346490947552791}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 69.4592, y: 69.4592}
+  m_SizeDelta: {x: -60, y: -60}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &2470801904191820069
 CanvasRenderer:
@@ -656,7 +666,7 @@ MonoBehaviour:
     unfolded: 0
     eventsEnabled: 0
   scaleSpring:
-    unifiedForceAndDrag: 1
+    unifiedForceAndDrag: 0
     unifiedForce: 150
     unifiedDrag: 10
     useInitialValues: 0
@@ -670,7 +680,7 @@ MonoBehaviour:
       stopSpringOnCurrentValueClamp: 0
       minValue: 0
       maxValue: 100
-      update: 1
+      update: 0
       force: 150
       drag: 10
       target: 0
@@ -685,7 +695,7 @@ MonoBehaviour:
       stopSpringOnCurrentValueClamp: 0
       minValue: 0
       maxValue: 100
-      update: 1
+      update: 0
       force: 150
       drag: 10
       target: 0
@@ -700,7 +710,7 @@ MonoBehaviour:
       stopSpringOnCurrentValueClamp: 0
       minValue: 0
       maxValue: 100
-      update: 1
+      update: 0
       force: 150
       drag: 10
       target: 0
@@ -896,10 +906,10 @@ RectTransform:
   m_Children: []
   m_Father: {fileID: 2565346490947552791}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 69.4592, y: 69.4592}
+  m_SizeDelta: {x: -60, y: -60}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &8315397343416704445
 CanvasRenderer:
@@ -1017,7 +1027,7 @@ MonoBehaviour:
     unfolded: 0
     eventsEnabled: 0
   scaleSpring:
-    unifiedForceAndDrag: 1
+    unifiedForceAndDrag: 0
     unifiedForce: 150
     unifiedDrag: 10
     useInitialValues: 0
@@ -1031,7 +1041,7 @@ MonoBehaviour:
       stopSpringOnCurrentValueClamp: 0
       minValue: 0
       maxValue: 100
-      update: 1
+      update: 0
       force: 150
       drag: 10
       target: 0
@@ -1046,7 +1056,7 @@ MonoBehaviour:
       stopSpringOnCurrentValueClamp: 0
       minValue: 0
       maxValue: 100
-      update: 1
+      update: 0
       force: 150
       drag: 10
       target: 0
@@ -1061,7 +1071,7 @@ MonoBehaviour:
       stopSpringOnCurrentValueClamp: 0
       minValue: 0
       maxValue: 100
-      update: 1
+      update: 0
       force: 150
       drag: 10
       target: 0
@@ -1071,7 +1081,7 @@ MonoBehaviour:
       clamped: 0
       operationValue: 0
     showDebugFields: 0
-    unfolded: 0
+    unfolded: 1
     eventsEnabled: 0
   rotationSpring:
     unifiedForceAndDrag: 1
