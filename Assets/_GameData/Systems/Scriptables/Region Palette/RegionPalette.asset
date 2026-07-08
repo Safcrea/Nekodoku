@@ -14,20 +14,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Meowdoku.RegionPalette
   entries:
   - Id: 0
-    Color: {r: 0.9622642, g: 0.45843717, b: 0.86347467, a: 1}
+    Sprite: {fileID: 21300000, guid: 7d9fc5452776c44d6bc3e390825605c6, type: 3}
   - Id: 1
-    Color: {r: 0, g: 1, b: 0.47402596, a: 1}
+    Sprite: {fileID: 21300000, guid: d82396d246aeb46588aa02de495cc92e, type: 3}
   - Id: 2
-    Color: {r: 0, g: 0.94470406, b: 1, a: 1}
+    Sprite: {fileID: 21300000, guid: 02869c78a7fc84c2b8d6659b8ad15d6e, type: 3}
   - Id: 3
-    Color: {r: 1, g: 0.75462884, b: 0.4292453, a: 1}
+    Sprite: {fileID: 21300000, guid: bc555161790fb402bb8aaa3d8c07d02e, type: 3}
   - Id: 4
-    Color: {r: 0.4996631, g: 0.2216981, b: 1, a: 1}
+    Sprite: {fileID: 21300000, guid: 32110f448d9244fa19304d7360a82d4f, type: 3}
   - Id: 5
-    Color: {r: 1, g: 0.87619054, b: 0, a: 1}
+    Sprite: {fileID: 21300000, guid: 9fc51f4ece70744579ca27b867f73c91, type: 3}
   - Id: 6
-    Color: {r: 1, g: 0.27522936, b: 0, a: 1}
+    Sprite: {fileID: 21300000, guid: a978c9587ae75478e85e51d503c99988, type: 3}
   - Id: 7
-    Color: {r: 0, g: 0.6912513, b: 1, a: 1}
+    Sprite: {fileID: 21300000, guid: 678c26e660cc04652b2c184139e2c460, type: 3}
   - Id: 8
-    Color: {r: 0.6688934, g: 0.9433962, b: 0.30704877, a: 1}
+    Sprite: {fileID: 21300000, guid: f27d7cd271c59437da1d91b840c80282, type: 3}
