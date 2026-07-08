@@ -10,11 +10,18 @@ namespace Meowdoku
         private readonly bool[,] solutionCats;
         private readonly bool[,] lockedCats;
 
+        private int bonusHearts;
+
         public Level Level { get; }
         public int Size => Level.Size;
         public int MistakeCount { get; private set; }
-        public int HeartsRemaining => Math.Max(0, StartingHearts - MistakeCount);
+        public int HeartsRemaining => Math.Max(0, StartingHearts + bonusHearts - MistakeCount);
         public bool IsFailed => HeartsRemaining <= 0;
+
+        /// <summary>True once this attempt has claimed its one-per-attempt extra life from the level-failed
+        /// screen. Reset by <see cref="Clear"/> (a fresh level load or an explicit retry), so the offer
+        /// comes back on the next attempt but never twice within the same one.</summary>
+        public bool HasClaimedExtraLife { get; private set; }
 
         public PuzzleBoard(Level level)
         {
@@ -58,7 +65,23 @@ namespace Meowdoku
                 }
             }
 
+            bonusHearts = 0;
+            HasClaimedExtraLife = false;
             RecalculateMistakes();
+        }
+
+        /// <summary>Grants the one-per-attempt extra life. No-ops if already claimed this attempt
+        /// (the UI should already prevent this by hiding the offer, but this is the authoritative guard).</summary>
+        public bool AddLife()
+        {
+            if (HasClaimedExtraLife)
+            {
+                return false;
+            }
+
+            HasClaimedExtraLife = true;
+            bonusHearts++;
+            return true;
         }
 
         public CellMark GetMark(int row, int column)

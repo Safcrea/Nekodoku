@@ -11,7 +11,7 @@ namespace Meowdoku
 
         public static void LightImpact()
         {
-            Play(HapticTypes.LightImpact);
+            Play(HapticTypes.MediumImpact);
         }
 
         public static void Success()

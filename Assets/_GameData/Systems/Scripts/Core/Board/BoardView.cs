@@ -37,6 +37,9 @@ namespace Meowdoku
         private readonly List<GridCell> cells = new List<GridCell>();
 
         private GridCell[,] cellGrid;
+        private HashSet<Coord> tutorialAllowedCells;
+        private HashSet<Coord> tutorialRequiredCells;
+        private bool tutorialRestrictionActive;
 
         public void RebuildCells(PuzzleBoard board, BoardInputHandler inputHandler)
         {
@@ -116,8 +119,60 @@ namespace Meowdoku
                 bool revealedMiss = board.HasRevealedMiss(cell.Row, cell.Column);
 
                 cell.Refresh(mark, revealedCat, revealedMiss);
-                cell.SetInteractable(!inputLocked);
+
+                Coord coord = new Coord(cell.Row, cell.Column);
+                bool allowed = !tutorialRestrictionActive || tutorialAllowedCells.Contains(coord);
+                bool completedRequired = tutorialRequiredCells != null
+                    && tutorialRequiredCells.Contains(coord)
+                    && mark == CellMark.Cross;
+                cell.SetInteractable(!inputLocked && allowed);
+                cell.SetTutorialDimMode(GetTutorialDimMode(tutorialRestrictionActive, allowed, completedRequired, revealedCat));
             }
+        }
+
+        /// <summary>
+        /// Restricts interaction to exactly the given cells (dims and disables everything else) so a
+        /// scripted tutorial step can't be broken by poking around the rest of the board. Persists
+        /// across <see cref="RefreshVisuals"/> calls until <see cref="ClearTutorialRestriction"/>.
+        /// </summary>
+        public void SetTutorialRestriction(IEnumerable<Coord> allowedCells, IEnumerable<Coord> requiredCells = null)
+        {
+            tutorialAllowedCells = ToHashSet(allowedCells);
+            tutorialRequiredCells = ToHashSetOrNull(requiredCells);
+            tutorialRestrictionActive = true;
+        }
+
+        public void ClearTutorialRestriction()
+        {
+            tutorialRestrictionActive = false;
+            tutorialAllowedCells = null;
+            tutorialRequiredCells = null;
+        }
+
+        /// <summary>
+        /// Cells the lesson previously required (e.g. an earlier sub-guide's cells, now crossed) stay
+        /// undimmed once done - only cells that are neither the current sub-guide's target nor already
+        /// completed get dimmed. Interactability for those already-done cells is turned off separately
+        /// via the `allowed` check in <see cref="RefreshVisuals"/>, so this method only ever governs opacity.
+        /// </summary>
+        private static TutorialDimMode GetTutorialDimMode(bool restrictionActive, bool allowed, bool completedRequired, bool revealedCat)
+        {
+            if (!restrictionActive || revealedCat || completedRequired || allowed)
+            {
+                return TutorialDimMode.None;
+            }
+
+            return TutorialDimMode.NotRequired;
+        }
+
+        private static HashSet<Coord> ToHashSet(IEnumerable<Coord> cells)
+        {
+            return cells != null ? new HashSet<Coord>(cells) : new HashSet<Coord>();
+        }
+
+        private static HashSet<Coord> ToHashSetOrNull(IEnumerable<Coord> cells)
+        {
+            return cells != null ? new HashSet<Coord>(cells) : null;
         }
 
         public bool TryPointerToCell(Vector2 screenPosition, Camera pressEventCamera, out int row, out int column)
