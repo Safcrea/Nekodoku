@@ -4077,7 +4077,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
+  m_SizeDelta: {x: 150, y: 150}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &694616269
 MonoBehaviour:
@@ -6688,11 +6688,11 @@ RectTransform:
   - {fileID: 694616268}
   m_Father: {fileID: 1568096964}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 1}
+  m_AnchorMin: {x: 0.5, y: 0}
   m_AnchorMax: {x: 0.5, y: 1}
-  m_AnchoredPosition: {x: 0, y: -1396}
-  m_SizeDelta: {x: 1080, y: 162.28003}
-  m_Pivot: {x: 0.5, y: 1}
+  m_AnchoredPosition: {x: 0, y: -623.17285}
+  m_SizeDelta: {x: 1080, y: -1504.698}
+  m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1263332686
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -6714,8 +6714,8 @@ MonoBehaviour:
   m_Spacing: -272.43
   m_ChildForceExpandWidth: 1
   m_ChildForceExpandHeight: 1
-  m_ChildControlWidth: 1
-  m_ChildControlHeight: 1
+  m_ChildControlWidth: 0
+  m_ChildControlHeight: 0
   m_ChildScaleWidth: 0
   m_ChildScaleHeight: 0
   m_ReverseArrangement: 0
@@ -7604,7 +7604,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Meowdoku.GameManager
   levelDatabase: {fileID: 11400000, guid: 2f9bfb07ead1a4f0ab423c88205f8097, type: 2}
-  localizationDatabase: {fileID: 11400000, guid: ae235b27e4f904a77976daa484381832, type: 2}
   boardView: {fileID: 1989213273}
   gameplayScreen: {fileID: 1221616216}
   inputHandler: {fileID: 1474540648}
@@ -9497,7 +9496,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 0}
+  m_SizeDelta: {x: 150, y: 150}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &1736351380
 MonoBehaviour:
