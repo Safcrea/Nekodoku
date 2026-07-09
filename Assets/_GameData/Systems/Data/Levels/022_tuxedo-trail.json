@@ -15,37 +15,31 @@
         {
             "row": 0,
             "column": 1,
-            "letter": "B",
             "locked": true
         },
         {
             "row": 1,
             "column": 3,
-            "letter": "U",
             "locked": false
         },
         {
             "row": 2,
             "column": 5,
-            "letter": "T",
             "locked": false
         },
         {
             "row": 3,
             "column": 0,
-            "letter": "T",
             "locked": false
         },
         {
             "row": 4,
             "column": 2,
-            "letter": "O",
             "locked": false
         },
         {
             "row": 5,
             "column": 4,
-            "letter": "N",
             "locked": false
         }
     ]

@@ -16,43 +16,36 @@
         {
             "row": 0,
             "column": 4,
-            "letter": "M",
             "locked": true
         },
         {
             "row": 1,
             "column": 1,
-            "letter": "O",
             "locked": false
         },
         {
             "row": 2,
             "column": 3,
-            "letter": "R",
             "locked": false
         },
         {
             "row": 3,
             "column": 5,
-            "letter": "N",
             "locked": false
         },
         {
             "row": 4,
             "column": 2,
-            "letter": "I",
             "locked": false
         },
         {
             "row": 5,
             "column": 0,
-            "letter": "N",
             "locked": false
         },
         {
             "row": 6,
             "column": 6,
-            "letter": "G",
             "locked": false
         }
     ]

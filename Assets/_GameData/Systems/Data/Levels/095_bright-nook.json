@@ -18,55 +18,46 @@
         {
             "row": 0,
             "column": 1,
-            "letter": "P",
             "locked": false
         },
         {
             "row": 1,
             "column": 8,
-            "letter": "L",
             "locked": false
         },
         {
             "row": 2,
             "column": 6,
-            "letter": "A",
             "locked": false
         },
         {
             "row": 3,
             "column": 4,
-            "letter": "N",
             "locked": false
         },
         {
             "row": 4,
             "column": 2,
-            "letter": "E",
             "locked": false
         },
         {
             "row": 5,
             "column": 5,
-            "letter": "T",
             "locked": false
         },
         {
             "row": 6,
             "column": 0,
-            "letter": "A",
             "locked": false
         },
         {
             "row": 7,
             "column": 3,
-            "letter": "R",
             "locked": false
         },
         {
             "row": 8,
             "column": 7,
-            "letter": "Y",
             "locked": false
         }
     ]
