@@ -1,6 +1,8 @@
 using System.Collections;
 using DG.Tweening;
 using UnityEngine;
+using AVN.AdsPlugin;
+
 #if USE_AVNADS_PLUGIN
 using AVN.AdsPlugin.Controllers;
 using AVN.AdsPlugin.Services;
@@ -65,8 +67,20 @@ namespace Meowdoku
         /// "this level" means to analytics.</summary>
         private int AnalyticsLevelNumber => levelIndex + GameConstants.FirstLevelNumber;
 
+        private void OnEnable()
+        {
+            LocalizationService.Changed += OnLocalizationChanged;
+        }
+
+        private void OnDisable()
+        {
+            LocalizationService.Changed -= OnLocalizationChanged;
+        }
+
         private void Start()
         {
+            LocalizationService.InitializeDefaultIfNeeded();
+
             inputHandler.Initialize(this, boardView, gameplayScreen);
             levelCompleteScreen.NextRequested += NextLevel;
             levelFailedScreen.RetryRequested += OnRetryRequested;
@@ -84,7 +98,18 @@ namespace Meowdoku
             else
             {
                 LoadLevel(GetSavedLevelIndex());
+                AVNPlugin.DTInstance?.LoadBanner(true, BannerAdTypes.BANNER);
             }
+        }
+
+        private void OnLocalizationChanged()
+        {
+            if (board == null || inputHandler == null)
+            {
+                return;
+            }
+
+            Refresh();
         }
 
         private void BeginTutorialLesson()
@@ -127,6 +152,7 @@ namespace Meowdoku
         private void OnLessonTeachingFinished()
         {
             IsLessonActive = false;
+            AVNPlugin.DTInstance?.LoadBanner(true, BannerAdTypes.BANNER);
             Refresh();
         }
 
@@ -379,6 +405,9 @@ namespace Meowdoku
             }
 
             LoadLevel((levelIndex + 1) % levels.Length);
+            AVNPlugin.DTInstance?.ShowInterAd();
+            AVNPlugin.DTInstance?.NativeRateUsCall();
+            AVNPlugin.DTInstance?.NotificationCall();
         }
 
         private void OnRetryRequested()

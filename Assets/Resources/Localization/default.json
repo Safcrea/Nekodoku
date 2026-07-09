@@ -1,0 +1,49 @@
+{
+  "language": "en",
+  "strings": [
+    {
+      "key": "tutorial.info.revealCat",
+      "value": "Double Tap To Reveal The Cat."
+    },
+    { "key": "tutorial.info.findLastCat", "value": "Find The Last Cat Now." },
+    {
+      "key": "tutorial.rules.rowColumn.title",
+      "value": "1 Cat Per Column & Row"
+    },
+    {
+      "key": "tutorial.rules.rowColumn.body",
+      "value": "Every row and column hides exactly one cat. "
+    },
+    { "key": "tutorial.rules.touching.title", "value": "Cats Can't Touch" },
+    {
+      "key": "tutorial.rules.touching.body",
+      "value": "Not even diagonally. Cross out every cell touching this cat."
+    },
+    { "key": "tutorial.rules.color.title", "value": "1 Cat Per Color" },
+    {
+      "key": "tutorial.rules.color.body",
+      "value": "This cat's color already has its cat. Cross out the rest of the color region."
+    },
+    { "key": "gameplay.levelTitleFormat", "value": "Level {0}" },
+    { "key": "gameplay.rule1", "value": "1 Cat Per Column & Row." },
+    { "key": "gameplay.rule2", "value": "Cats Can't Touch" },
+    { "key": "gameplay.rule3", "value": "1 Cat Per Color" },
+    { "key": "levelComplete.text", "value": "Cats Collected" },
+    { "key": "levelComplete.next", "value": "Next" },
+    { "key": "levelFailed.text", "value": "Out of Lives" },
+    { "key": "levelFailed.retry", "value": "Retry" },
+    { "key": "noInternet.text", "value": "No Internet Connection" },
+    { "key": "noInternet.retry", "value": "Retry" },
+    { "key": "settings.title", "value": "Settings" }
+  ],
+  "pools": [
+    {
+      "key": "levelComplete.comments",
+      "values": ["Great job!", "You're a puzzle master!", "Purrfect!"]
+    },
+    {
+      "key": "levelFailed.comments",
+      "values": ["So close!", "Don't give up!", "Try again, you've got this!"]
+    }
+  ]
+}

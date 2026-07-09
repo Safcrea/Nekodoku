@@ -20,7 +20,6 @@ namespace Meowdoku
 
         public static event Action Changed;
 
-        public static string CurrentLanguage => currentLanguage;
         public static bool IsInitialized { get; private set; }
         public static bool IsRemoteConfigured { get; private set; }
 
@@ -64,47 +63,6 @@ namespace Meowdoku
             }
 
             return ApplyLanguages(languages, parsedDefaultLanguage, sourceDescription, remote);
-        }
-
-        public static void Initialize(LocalizationData languageData)
-        {
-            Dictionary<string, LocalizationData> languages = new Dictionary<string, LocalizationData>();
-            if (AddLanguage(languageData, "LocalizationData", languages))
-            {
-                ApplyLanguages(languages, languageData.language, "LocalizationData", false);
-            }
-            else
-            {
-                InitializeDefaultIfNeeded();
-            }
-        }
-
-        public static void Initialize(LocalizationDatabase database)
-        {
-            if (database == null)
-            {
-                Debug.LogError("LocalizationService.Initialize called with no LocalizationDatabase.");
-                InitializeDefaultIfNeeded();
-                return;
-            }
-
-            ApplyLanguages(database.LoadLanguages(), database.defaultLanguage, "LocalizationDatabase", false);
-        }
-
-        public static void SetLanguage(string code)
-        {
-            EnsureInitialized();
-
-            if (string.IsNullOrWhiteSpace(code) || stringsByLanguage == null || !stringsByLanguage.ContainsKey(code))
-            {
-                Debug.LogWarning($"Cannot switch localization to missing language '{code}'.");
-                return;
-            }
-
-            currentLanguage = code;
-            PlayerPrefs.SetString(LanguagePlayerPrefsKey, code);
-            PlayerPrefs.Save();
-            Changed?.Invoke();
         }
 
         public static string Get(string key)

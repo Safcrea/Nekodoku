@@ -22,11 +22,31 @@ namespace Meowdoku
         [SerializeField]
         private CatCounter catBasket;
 
+        [Tooltip("Optional - the always-on Rules tab strip's three rule labels (row/column, touching, color). Set from LocalizationService each refresh so returning players who skip the once-ever tutorial still see localized text.")]
+        [SerializeField] private TMP_Text rule1Text;
+        [SerializeField] private TMP_Text rule2Text;
+        [SerializeField] private TMP_Text rule3Text;
+
         public void Refresh(int levelIndex, Level level, ValidationResult validation)
         {
-            titleText.text = $"Level {levelIndex + 1}";
+            titleText.text = LocalizationService.GetFormat("gameplay.levelTitleFormat", levelIndex + 1);
             lifeHearts.Refresh(validation.HeartsRemaining, validation.IsFailed);
             catBasket.Refresh(validation.RevealedCatCount, level.Size);
+
+            if (rule1Text != null)
+            {
+                rule1Text.text = LocalizationService.Get("gameplay.rule1");
+            }
+
+            if (rule2Text != null)
+            {
+                rule2Text.text = LocalizationService.Get("gameplay.rule2");
+            }
+
+            if (rule3Text != null)
+            {
+                rule3Text.text = LocalizationService.Get("gameplay.rule3");
+            }
         }
 
         public void PlayIntro()

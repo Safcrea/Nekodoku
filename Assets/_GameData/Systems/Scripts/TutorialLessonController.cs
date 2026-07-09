@@ -40,8 +40,6 @@ namespace Meowdoku
         private const float GuideMoveLerpSpeed = 10f;
         private const float InfoCardPopSeconds = 0.3f;
         private const float InfoCardFadeOutSeconds = 0.3f;
-        private const string RevealCatInfoText = "Double Tap To Reveal The Cat.";
-        private const string FindLastCatInfoText = "Find The Last Cat Now.";
 
         /// <summary>All 8 neighbors, in reading order - the touching rule forbids orthogonal AND
         /// diagonal contact, so the teach step must cover every uncrossed neighbor, not just diagonals.</summary>
@@ -89,6 +87,7 @@ namespace Meowdoku
 
         [SerializeField] private TextAsset lessonLevelJson;
         [SerializeField] private BoardView boardView;
+        [SerializeField] private CatCounter catCounter;
 
         [Header("Focus overlay (dims board + HUD while a rule card is up)")]
         [SerializeField] private CanvasGroup dimOverlayCanvasGroup;
@@ -222,6 +221,7 @@ namespace Meowdoku
             BuildRuleSteps();
             HideAllTabs();
             SetDimOverlayImmediate(false);
+            SetCatCounterVisible(false);
             waitingForFinalCatInfoDismiss = false;
 
             lessonActive = true;
@@ -420,7 +420,7 @@ namespace Meowdoku
             boardView.SetTutorialRestriction(new[] { cat }, TutorialRequiredCells());
             boardView.RefreshVisuals(board, false);
             ShowRevealGuide(cat);
-            ShowInfoCard(RevealCatInfoText);
+            ShowInfoCard(LocalizationService.Get("tutorial.info.revealCat"));
         }
 
         private void BeginRuleIntro(RuleStep step)
@@ -811,9 +811,10 @@ namespace Meowdoku
             boardView.ClearTutorialRestriction();
             boardView.RefreshVisuals(board, false);
             waitingForFinalCatInfoDismiss = true;
-            ShowInfoCard(FindLastCatInfoText);
+            ShowInfoCard(LocalizationService.Get("tutorial.info.findLastCat"));
             PlayerPrefs.SetInt(LessonSeenPlayerPrefsKey, 1);
             onLessonComplete?.Invoke();
+            SetCatCounterVisible(true);
         }
 
         private bool IsCurrentRevealCat(Coord cat)
@@ -840,6 +841,26 @@ namespace Meowdoku
             }
 
             return group;
+        }
+
+        private void SetCatCounterVisible(bool visible)
+        {
+            CatCounter counter = ResolveCatCounter();
+            if (counter != null)
+            {
+                counter.SetVisible(visible);
+            }
+        }
+
+        private CatCounter ResolveCatCounter()
+        {
+            if (catCounter != null)
+            {
+                return catCounter;
+            }
+
+            catCounter = UnityEngine.Object.FindFirstObjectByType<CatCounter>(FindObjectsInactive.Include);
+            return catCounter;
         }
 
         // ---- hand / focus-ring guide ----
@@ -1124,8 +1145,8 @@ namespace Meowdoku
             rowColumnStep = new RuleStep
             {
                 ReferenceSprite = rowColumnSprite,
-                Title = "1 Cat Per Column & Row",
-                Body = "Every row and column hides exactly one cat. Cross out the rest of this cat's row and column.",
+                Title = LocalizationService.Get("tutorial.rules.rowColumn.title"),
+                Body = LocalizationService.Get("tutorial.rules.rowColumn.body"),
                 Tab = rowColumnTab,
                 SubGuides = new[]
                 {
@@ -1137,8 +1158,8 @@ namespace Meowdoku
             touchingStep = new RuleStep
             {
                 ReferenceSprite = touchingSprite,
-                Title = "Cats Can't Touch",
-                Body = "Not even diagonally. Cross out every cell touching this cat.",
+                Title = LocalizationService.Get("tutorial.rules.touching.title"),
+                Body = LocalizationService.Get("tutorial.rules.touching.body"),
                 Tab = touchingTab,
                 SubGuides = TapEachCell(touchCells),
             };
@@ -1146,8 +1167,8 @@ namespace Meowdoku
             colorStep = new RuleStep
             {
                 ReferenceSprite = colorSprite,
-                Title = "1 Cat Per Color",
-                Body = "This cat's color already has its cat. Cross out the rest of the color region.",
+                Title = LocalizationService.Get("tutorial.rules.color.title"),
+                Body = LocalizationService.Get("tutorial.rules.color.body"),
                 Tab = colorTab,
                 SubGuides = TapEachCell(colorCells),
             };

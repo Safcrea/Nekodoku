@@ -43,10 +43,16 @@ namespace Meowdoku
 
         [SerializeField] private RectTransform retryButton;
         [SerializeField] private CanvasGroup retryButtonCanvasGroup;
+        [Tooltip("Optional - localized \"Retry\" button label. Set from LocalizationService each time the panel shows.")]
+        [SerializeField] private TMP_Text retryButtonText;
 
         [Tooltip("Grants one extra life and continues the same attempt instead of restarting it. Only offered once per level-load/retry (see ShowFailAnimation's extraLifeAvailable parameter).")]
         [SerializeField] private RectTransform extraLifeButton;
         [SerializeField] private CanvasGroup extraLifeButtonCanvasGroup;
+
+        [Tooltip("Optional - a random encouragement line, re-picked from LocalizationService's comments pool each time the panel shows.")]
+        [SerializeField] private TMP_Text commentText;
+        [SerializeField] private CanvasGroup commentCanvasGroup;
 
         private Sequence failSequence;
         private Tween leftHeartIdleTween;
@@ -103,11 +109,25 @@ namespace Meowdoku
             SoundManager.PlaySound(SFX.LevelFailed);
             GameHaptics.Failure();
 
+            if (retryButtonText != null)
+            {
+                retryButtonText.text = LocalizationService.Get("levelFailed.retry");
+            }
+
+            if (commentText != null)
+            {
+                commentText.text = LocalizationService.GetRandomFromPool("levelFailed.comments");
+            }
+
             failedPanel.localScale = Vector3.one * 0.84f;
             failedPanelCanvasGroup.alpha = 0f;
             failedLabel.localScale = Vector3.one * 0.84f;
             failedLabel.localRotation = Quaternion.identity;
             failedLabelCanvasGroup.alpha = 0f;
+            if (commentCanvasGroup != null)
+            {
+                commentCanvasGroup.alpha = 0f;
+            }
             PrepareHeart(brokenHeartLeft, brokenHeartLeftCanvasGroup, -14f);
             PrepareHeart(brokenHeartRight, brokenHeartRightCanvasGroup, 14f);
             retryButton.localScale = Vector3.one * 0.84f;
@@ -126,6 +146,10 @@ namespace Meowdoku
                 PopSeconds * 1.4f,
                 6,
                 0.7f));
+            if (commentCanvasGroup != null)
+            {
+                failSequence.Insert(StaggerSeconds, commentCanvasGroup.DOFade(1f, PopSeconds * 0.6f));
+            }
             failSequence.InsertCallback(StaggerSeconds, PlayTextAnimation);
 
             float heartsDelay = StaggerSeconds * 2f;
@@ -225,6 +249,10 @@ namespace Meowdoku
             failedLabel.localScale = Vector3.one;
             failedLabel.localRotation = Quaternion.identity;
             failedLabelCanvasGroup.alpha = 1f;
+            if (commentCanvasGroup != null)
+            {
+                commentCanvasGroup.alpha = 1f;
+            }
             ResetHeart(brokenHeartLeft, brokenHeartLeftCanvasGroup);
             ResetHeart(brokenHeartRight, brokenHeartRightCanvasGroup);
             retryButton.localScale = Vector3.one;
@@ -257,7 +285,7 @@ namespace Meowdoku
 
         private string BuildFailMessage()
         {
-            return "<bounce><slidev>Out of Lives</slidev></bounce>";
+            return $"<bounce><slidev>{LocalizationService.Get("levelFailed.text")}</slidev></bounce>";
         }
 
         private void ResolveReferences()
@@ -315,7 +343,7 @@ namespace Meowdoku
 
             if (failedLabelText != null)
             {
-                failedLabelText.text = "Level Failed";
+                failedLabelText.text = LocalizationService.Get("levelFailed.text");
             }
         }
 
@@ -427,6 +455,7 @@ namespace Meowdoku
             retryButtonCanvasGroup.DOKill();
             extraLifeButton?.DOKill();
             extraLifeButtonCanvasGroup?.DOKill();
+            commentCanvasGroup?.DOKill();
         }
     }
 }

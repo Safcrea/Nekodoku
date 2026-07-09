@@ -2,6 +2,7 @@ using System;
 using AllIn1SpringsToolkit;
 using DG.Tweening;
 using Febucci.TextAnimatorForUnity;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -39,11 +40,17 @@ namespace Meowdoku
         [SerializeField] private TypewriterComponent winTypewriter;
         [SerializeField] private RectTransform nextButton;
         [SerializeField] private CanvasGroup nextButtonCanvasGroup;
+        [Tooltip("Optional - localized \"Next\" button label. Set from LocalizationService each time the panel shows.")]
+        [SerializeField] private TMP_Text nextButtonText;
         [SerializeField] private TransformSpringComponent winPanelSpring;
         [SerializeField] private TransformSpringComponent nextButtonSpring;
 
         [Tooltip("The star FILL images only - the black star bases are always-visible Editor art behind these and need no code.")]
         [SerializeField] private Image[] starFillImages;
+
+        [Tooltip("Optional - a random encouragement line, re-picked from LocalizationService's comments pool each time the panel shows.")]
+        [SerializeField] private TMP_Text commentText;
+        [SerializeField] private CanvasGroup commentCanvasGroup;
 
         [SerializeField] private ParticleSystem winVfx;
 
@@ -121,11 +128,25 @@ namespace Meowdoku
                 winTypewriter.StopShowingText();
             }
 
+            if (nextButtonText != null)
+            {
+                nextButtonText.text = LocalizationService.Get("levelComplete.next");
+            }
+
+            if (commentText != null)
+            {
+                commentText.text = LocalizationService.GetRandomFromPool("levelComplete.comments");
+            }
+
             SnapSpring(winPanelSpring, winPanel, winPanel.localPosition, Vector3.one * 0.84f, Quaternion.identity);
             winPanelCanvasGroup.alpha = 0f;
             winLabel.localScale = Vector3.one * 0.84f;
             winLabel.localRotation = Quaternion.identity;
             winLabelCanvasGroup.alpha = 0f;
+            if (commentCanvasGroup != null)
+            {
+                commentCanvasGroup.alpha = 0f;
+            }
             SnapSpring(nextButtonSpring, nextButton, nextButton.localPosition, Vector3.one * 0.84f, Quaternion.identity);
             nextButtonCanvasGroup.alpha = 0f;
 
@@ -140,6 +161,10 @@ namespace Meowdoku
                 PopSeconds * 1.4f,
                 6,
                 0.7f));
+            if (commentCanvasGroup != null)
+            {
+                panelSequence.Insert(StaggerSeconds, commentCanvasGroup.DOFade(1f, PopSeconds * 0.6f));
+            }
             // Start the typewriter exactly when the label becomes visible - calling ShowText()
             // any earlier lets its reveal animation run (and finish) while alpha is still 0,
             // so it looks static once it fades in.
@@ -203,6 +228,11 @@ namespace Meowdoku
             outroSequence.Join(winLabelCanvasGroup.DOFade(0f, OutroSeconds));
             outroSequence.Join(nextButtonCanvasGroup.DOFade(0f, OutroSeconds));
 
+            if (commentCanvasGroup != null)
+            {
+                outroSequence.Join(commentCanvasGroup.DOFade(0f, OutroSeconds));
+            }
+
             if (starFillImages != null)
             {
                 foreach (Image fill in starFillImages)
@@ -239,6 +269,10 @@ namespace Meowdoku
             winLabel.localScale = Vector3.one;
             winLabel.localRotation = Quaternion.identity;
             winLabelCanvasGroup.alpha = 1f;
+            if (commentCanvasGroup != null)
+            {
+                commentCanvasGroup.alpha = 1f;
+            }
             SnapSpring(nextButtonSpring, nextButton, nextButton.localPosition, Vector3.one, Quaternion.identity);
             nextButtonCanvasGroup.alpha = 1f;
 
@@ -269,11 +303,12 @@ namespace Meowdoku
             winLabelCanvasGroup.DOKill();
             nextButton.DOKill();
             nextButtonCanvasGroup.DOKill();
+            commentCanvasGroup?.DOKill();
         }
 
         private string BuildWinMessage()
         {
-            return "<bounce>{wave}Level Complete{/wave}</bounce>";
+            return $"<bounce>{{wave}}{LocalizationService.Get("levelComplete.text")}{{/wave}}</bounce>";
         }
 
         // ---- star rating ----
