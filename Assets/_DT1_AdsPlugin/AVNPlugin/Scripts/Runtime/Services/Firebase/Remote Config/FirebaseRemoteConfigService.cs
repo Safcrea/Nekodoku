@@ -193,10 +193,10 @@ namespace AVN.AdsPlugin.Services
                 PlayerPrefs.SetString(DT1AdsPluginPrefKeys.RemoteConfigAdConfig, json);
                 PlayerPrefs.Save();
                 DiagnosticsHubAVNPlugin.PublishStatus(DiagnosticKeysAVNPlugin.RemoteConfigValues, DiagnosticStateAVNPlugin.Loaded, $"TryApplyAdConfig success, fromCache={fromCache}");
-                
+
                 // Merge data with existing status to preserve AdIdsConfig
                 var mergedData = new Dictionary<string, string> { { "AdConfig", json } };
-                if (DiagnosticsHubAVNPlugin.TryGetStatus(DiagnosticKeysAVNPlugin.RemoteConfigValues, out var existingStatus) && 
+                if (DiagnosticsHubAVNPlugin.TryGetStatus(DiagnosticKeysAVNPlugin.RemoteConfigValues, out var existingStatus) &&
                     existingStatus.Data != null)
                 {
                     foreach (var kvp in existingStatus.Data)
@@ -207,7 +207,7 @@ namespace AVN.AdsPlugin.Services
                         }
                     }
                 }
-                
+
                 DiagnosticsHubAVNPlugin.PublishStatus(
                     DiagnosticKeysAVNPlugin.RemoteConfigValues,
                     DiagnosticStateAVNPlugin.Loaded,
@@ -248,10 +248,10 @@ namespace AVN.AdsPlugin.Services
 
             PlayerPrefs.SetString(DT1AdsPluginPrefKeys.RemoteConfigAdIdsConfig, json);
             PlayerPrefs.Save();
-            
+
             // Merge data with existing status to preserve AdConfig
             var mergedData = new Dictionary<string, string> { { "AdIdsConfig", json } };
-            if (DiagnosticsHubAVNPlugin.TryGetStatus(DiagnosticKeysAVNPlugin.RemoteConfigValues, out var existingStatus) && 
+            if (DiagnosticsHubAVNPlugin.TryGetStatus(DiagnosticKeysAVNPlugin.RemoteConfigValues, out var existingStatus) &&
                 existingStatus.Data != null)
             {
                 foreach (var kvp in existingStatus.Data)
@@ -262,7 +262,7 @@ namespace AVN.AdsPlugin.Services
                     }
                 }
             }
-            
+
             DiagnosticsHubAVNPlugin.PublishStatus(
                 DiagnosticKeysAVNPlugin.RemoteConfigValues,
                 DiagnosticStateAVNPlugin.Loaded,
@@ -317,16 +317,16 @@ namespace AVN.AdsPlugin.Services
     }
 }
 #endif
-#if USE_AVNADS_PLUGIN 
-    public static class DT1AdsPluginPrefKeys
-    {
-        public const string AdsEnabled = "DT1AdsPlugin_AdsEnabled";
-        public const string RemoteConfigAdConfig = "DT1AdsPlugin_RC_AdConfig";
-        public const string RemoteConfigAdIdsConfig = "DT1AdsPlugin_RC_AdIdsConfig";
+#if USE_AVNADS_PLUGIN
+public static class DT1AdsPluginPrefKeys
+{
+    public const string AdsEnabled = "DT1AdsPlugin_AdsEnabled";
+    public const string RemoteConfigAdConfig = "DT1AdsPlugin_RC_AdConfig";
+    public const string RemoteConfigAdIdsConfig = "DT1AdsPlugin_RC_AdIdsConfig";
 
-        public static string RemoteConfigCustom(string keyId)
-        {
-            return $"DT1AdsPlugin_RC_{keyId}";
-        }
+    public static string RemoteConfigCustom(string keyId)
+    {
+        return $"DT1AdsPlugin_RC_{keyId}";
     }
+}
 #endif

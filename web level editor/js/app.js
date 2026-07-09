@@ -14,11 +14,23 @@ import {
 import { generateLevelWithRegionSizes, defaultRegionSizes, defaultLockedCatCount } from "./core/generator.js";
 
 // Region colors mirror NekoGameController.RegionColors so painted boards read
-// the same here and in the game.
+// the same here and in the game. Which of these a given region actually
+// displays as is a separate, purely-cosmetic layer - see
+// state.regionColorIndices/colorForRegion.
 const REGION_COLORS = [
     "#ffb7c2", "#abe0c4", "#9eccf5", "#ffd194", "#c9b5ed",
     "#f5e88c", "#ed9e80", "#87d1d9", "#bde08f",
 ];
+
+/** Identity mapping (region r -> palette color r) - the starting point every
+ *  time the board size changes, same as regionSizes/lockedCats resetting. */
+function defaultRegionColorIndices(size) {
+    return Array.from({ length: size }, (_, i) => i % REGION_COLORS.length);
+}
+
+function colorForRegion(region) {
+    return REGION_COLORS[state.regionColorIndices[region] ?? region % REGION_COLORS.length];
+}
 
 const INTRO_DIAGONAL_DELAY_MS = 45; // Matches the game's diagonal pop-in sweep.
 
@@ -43,6 +55,11 @@ const state = {
     /** The count shown in the "Randomize" field - only consulted when that
      *  button is clicked, never implicitly. */
     lockRandomizeCount: 0,
+    /** Which REGION_COLORS index each region displays as - a permutation of
+     *  `size` distinct palette entries, purely cosmetic (never part of the
+     *  exported JSON). Defaults to identity (region r -> palette color r);
+     *  reassigned by clicking a swatch in the Colors & cell counts list. */
+    regionColorIndices: [],
     mode: "regions",
     selectedRegion: 0,
     selectedCat: 0,
@@ -58,11 +75,15 @@ const el = {
     colorCountList: document.getElementById("color-count-list"),
     cellTotalRow: document.getElementById("cell-total-row"),
     evenSplitBtn: document.getElementById("even-split-btn"),
+    randomizeCountsBtn: document.getElementById("randomize-counts-btn"),
     lockCatList: document.getElementById("lock-cat-list"),
     lockCountInput: document.getElementById("lock-count-input"),
     randomizeLocksBtn: document.getElementById("randomize-locks-btn"),
+    randomizerToggle: document.getElementById("randomizer-toggle"),
     generateInfoBtn: document.getElementById("generate-info-btn"),
     generateInfoPopover: document.getElementById("generate-info-popover"),
+    palettePopover: document.getElementById("palette-popover"),
+    palettePopoverGrid: document.getElementById("palette-popover-grid"),
     generateBtn: document.getElementById("generate-btn"),
     modeToolbar: document.getElementById("mode-toolbar"),
     regionsControls: document.getElementById("regions-controls"),
@@ -94,6 +115,7 @@ function resetLevel(size) {
     state.regionSizes = defaultRegionSizes(size);
     state.lockedCats = new Array(size).fill(false);
     state.lockRandomizeCount = defaultLockedCatCount(size);
+    state.regionColorIndices = defaultRegionColorIndices(size);
     state.selectedRegion = 0;
     state.selectedCat = 0;
 }
@@ -122,6 +144,9 @@ function setSize(newSize) {
     // Same for the locked-cat picker - old picks may no longer be valid indices.
     state.lockedCats = new Array(newSize).fill(false);
     state.lockRandomizeCount = defaultLockedCatCount(newSize);
+    // And for the color assignment - a custom swap for e.g. 5 colors doesn't
+    // carry any obvious meaning at 9.
+    state.regionColorIndices = defaultRegionColorIndices(newSize);
     state.selectedRegion = Math.min(state.selectedRegion, newSize - 1);
     state.selectedCat = Math.min(state.selectedCat, newSize - 1);
 }
@@ -207,6 +232,7 @@ function applyLevelData(level) {
     // picker always reflects the board that's actually loaded.
     state.lockedCats = Array.from({ length: level.size }, (_, i) => level.cats[i]?.locked ?? false);
     state.lockRandomizeCount = state.lockedCats.filter(Boolean).length || defaultLockedCatCount(level.size);
+    state.regionColorIndices = defaultRegionColorIndices(level.size);
     state.selectedRegion = 0;
     state.selectedCat = 0;
     pendingIntro = true;
@@ -240,7 +266,7 @@ function renderSwatches() {
     for (let region = 0; region < state.size; region++) {
         const swatch = document.createElement("button");
         swatch.className = "swatch" + (state.selectedRegion === region ? " active" : "");
-        swatch.style.background = REGION_COLORS[region % REGION_COLORS.length];
+        swatch.style.background = colorForRegion(region);
         swatch.textContent = String(region);
         swatch.title = `Region ${region}`;
         swatch.addEventListener("click", () => {
@@ -288,9 +314,15 @@ function renderColorCounts() {
         const row = document.createElement("div");
         row.className = "color-count-row";
 
-        const swatch = document.createElement("span");
+        const swatch = document.createElement("button");
+        swatch.type = "button";
         swatch.className = "swatch small";
-        swatch.style.background = REGION_COLORS[region % REGION_COLORS.length];
+        swatch.style.background = colorForRegion(region);
+        swatch.title = "Click to use a different palette color for this region";
+        swatch.addEventListener("click", (event) => {
+            event.stopPropagation();
+            openPalettePicker(region, swatch);
+        });
 
         const input = document.createElement("input");
         input.type = "number";
@@ -323,6 +355,49 @@ function renderColorCounts() {
     renderCellTotal();
 }
 
+/** Opens the shared palette popover next to whichever swatch was clicked,
+ *  populated with every palette color so the user can pick which one this
+ *  region should display as - out of the full 9-color palette, not just the
+ *  size-many colors the app happens to assign by default. */
+function openPalettePicker(region, anchorEl) {
+    el.palettePopoverGrid.replaceChildren();
+    REGION_COLORS.forEach((hex, colorIndex) => {
+        const option = document.createElement("button");
+        option.type = "button";
+        option.className = "palette-swatch-option" + (state.regionColorIndices[region] === colorIndex ? " active" : "");
+        option.style.background = hex;
+        option.title = `Use this color for region ${region}`;
+        option.addEventListener("click", (event) => {
+            event.stopPropagation();
+            assignRegionColor(region, colorIndex);
+            el.palettePopover.hidden = true;
+        });
+        el.palettePopoverGrid.append(option);
+    });
+
+    const rect = anchorEl.getBoundingClientRect();
+    el.palettePopover.style.top = `${rect.bottom + 6}px`;
+    el.palettePopover.style.left = `${rect.left}px`;
+    el.palettePopover.hidden = false;
+}
+
+/** Assigns colorIndex to region. If another region already displays that
+ *  color, the two regions swap colors instead of creating a duplicate - the
+ *  palette stays a permutation (every region a distinct color) no matter
+ *  what order colors get reassigned in. */
+function assignRegionColor(region, colorIndex) {
+    const previousIndex = state.regionColorIndices[region];
+    const otherRegion = state.regionColorIndices.findIndex((idx, r) => idx === colorIndex && r !== region);
+    if (otherRegion >= 0) {
+        state.regionColorIndices[otherRegion] = previousIndex;
+    }
+
+    state.regionColorIndices[region] = colorIndex;
+    renderSwatches();
+    renderColorCounts();
+    renderBoard();
+}
+
 function renderCellTotal() {
     const total = state.regionSizes.reduce((sum, count) => sum + count, 0);
     const target = state.size * state.size;
@@ -330,9 +405,13 @@ function renderCellTotal() {
     el.cellTotalRow.textContent = `${total} / ${target} cells`;
     el.cellTotalRow.classList.toggle("ok", !mismatched);
     el.cellTotalRow.classList.toggle("danger", mismatched);
-    el.generateBtn.disabled = mismatched;
-    el.generateBtn.title = mismatched
-        ? `Color cell counts must add up to exactly ${target} (currently ${total}) before you can generate - edit a row or press its Normalize button.`
+    // The Randomizer toggle overwrites regionSizes with a valid split right
+    // before generating (see el.generateBtn's click handler), so a mismatch
+    // shouldn't block the button while it's checked.
+    const blocked = mismatched && !el.randomizerToggle.checked;
+    el.generateBtn.disabled = blocked;
+    el.generateBtn.title = blocked
+        ? `Color cell counts must add up to exactly ${target} (currently ${total}) before you can generate - edit a row, press its Normalize button, or turn on "randomize counts & locked cats before generating".`
         : "";
 }
 
@@ -464,7 +543,7 @@ function applyCellVisual(row, column) {
     }
 
     const region = Number(state.regions[row][column]);
-    cell.style.background = REGION_COLORS[region % REGION_COLORS.length];
+    cell.style.background = colorForRegion(region);
 
     const catIndex = placementIndexAt(row, column);
     cell.textContent = catIndex >= 0 ? String(catIndex + 1) : "";
@@ -566,11 +645,32 @@ function cellFromEvent(event) {
     return { row: Number(cell.dataset.row), column: Number(cell.dataset.column) };
 }
 
+// Painting re-validates (a backtracking uniqueness solver plus per-region
+// connectivity flood fills) after every cell, which is imperceptible at 5x5
+// but scales badly with size - dragging fast across a 9x9 board fires many
+// pointermove events per second, and running full validation synchronously
+// on each one backs up the main thread faster than the browser can paint,
+// reading as a hang/crash. Coalescing to one validation pass per animation
+// frame (same rAF-throttle idiom as updateBoardSizing's resizeFrame below)
+// keeps the same live feedback while capping the worst-case cost regardless
+// of how many cells got painted between frames.
+let validationFrame = null;
+function scheduleValidation() {
+    if (validationFrame !== null) {
+        return;
+    }
+
+    validationFrame = requestAnimationFrame(() => {
+        validationFrame = null;
+        renderValidation();
+    });
+}
+
 function paintCell(row, column) {
     setRegion(row, column, state.selectedRegion);
     applyCellVisual(row, column);
     pulseCell(row, column, "painted");
-    renderValidation();
+    scheduleValidation();
 }
 
 el.board.addEventListener("pointerdown", (event) => {
@@ -696,6 +796,30 @@ function shuffledIndices(count) {
     return indices;
 }
 
+/** Random per-color split summing to size*size: every color starts at its
+ *  required minimum of 1 cell, then the remaining cells are thrown one at a
+ *  time at a random color - always sums exactly right, unlike naive
+ *  independent-random-then-normalize approaches. */
+function randomRegionSizes(size) {
+    const total = size * size;
+    const counts = new Array(size).fill(1);
+    for (let i = 0; i < total - size; i++) {
+        counts[Math.floor(Math.random() * size)]++;
+    }
+
+    return counts;
+}
+
+/** Same pick used by the Randomize locked-cats button, pulled out so the
+ *  Randomizer toggle (see el.generateBtn's click handler) can trigger the
+ *  same thing right before generating. */
+function randomizeLockedCats() {
+    const count = state.lockRandomizeCount;
+    const indices = shuffledIndices(state.size);
+    const chosen = new Set(indices.slice(0, count));
+    state.lockedCats = Array.from({ length: state.size }, (_, i) => chosen.has(i));
+}
+
 el.randomSeedBtn.addEventListener("click", () => {
     el.seed.value = randomSeed();
 });
@@ -703,6 +827,15 @@ el.randomSeedBtn.addEventListener("click", () => {
 el.evenSplitBtn.addEventListener("click", () => {
     state.regionSizes = defaultRegionSizes(state.size);
     renderColorCounts();
+});
+
+el.randomizeCountsBtn.addEventListener("click", () => {
+    state.regionSizes = randomRegionSizes(state.size);
+    renderColorCounts();
+});
+
+el.randomizerToggle.addEventListener("change", () => {
+    renderCellTotal();
 });
 
 // Info popover: the Generate panel's hint text lives here instead of as
@@ -717,12 +850,19 @@ document.addEventListener("click", (event) => {
     if (!el.generateInfoPopover.hidden && !el.generateInfoPopover.contains(event.target) && event.target !== el.generateInfoBtn) {
         el.generateInfoPopover.hidden = true;
     }
+
+    if (!el.palettePopover.hidden && !el.palettePopover.contains(event.target)) {
+        el.palettePopover.hidden = true;
+    }
 });
 
 document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && !el.generateInfoPopover.hidden) {
-        el.generateInfoPopover.hidden = true;
+    if (event.key !== "Escape") {
+        return;
     }
+
+    el.generateInfoPopover.hidden = true;
+    el.palettePopover.hidden = true;
 });
 
 el.lockCountInput.addEventListener("input", () => {
@@ -731,14 +871,22 @@ el.lockCountInput.addEventListener("input", () => {
 });
 
 el.randomizeLocksBtn.addEventListener("click", () => {
-    const count = state.lockRandomizeCount;
-    const indices = shuffledIndices(state.size);
-    const chosen = new Set(indices.slice(0, count));
-    state.lockedCats = Array.from({ length: state.size }, (_, i) => chosen.has(i));
+    randomizeLockedCats();
     renderLockCatList();
 });
 
 el.generateBtn.addEventListener("click", () => {
+    // The Randomizer toggle re-rolls both the color split and locked cats
+    // right before generating, instead of using whatever's currently set -
+    // and re-renders so the panel reflects what's about to be generated
+    // rather than changing silently underneath the player.
+    if (el.randomizerToggle.checked) {
+        state.regionSizes = randomRegionSizes(state.size);
+        randomizeLockedCats();
+        renderColorCounts();
+        renderLockCatList();
+    }
+
     let seed = el.seed.value.trim();
     if (seed === "") {
         seed = randomSeed();

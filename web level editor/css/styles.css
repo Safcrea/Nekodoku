@@ -197,57 +197,68 @@ main {
 
 /* ---- generate row ----
    Sits as its own full-width row below the Level/Board/Validation row
-   (rather than a tall card in the narrow left column), with its fields laid
-   out side by side instead of stacked - the whole point being to trade
-   height for width now that it has the room. */
+   (rather than a tall card in the narrow left column). Stacked top-to-bottom
+   (seed bar, then each section at the card's full width, then a footer)
+   rather than squeezed side by side - side-by-side ran out of room fast once
+   the color/locked-cat lists scale up toward 9 entries at a 9x9 board. */
 
 .generate-row {
     grid-column: 1 / -1;
 }
 
-.generate-row-fields {
+.generate-topbar {
     display: flex;
+    align-items: flex-end;
+    gap: 14px;
+    margin-bottom: 20px;
     flex-wrap: wrap;
-    align-items: flex-start;
-    gap: 24px;
 }
 
-.generate-row-fields .field {
+.generate-topbar .field {
+    flex: 1 1 220px;
     margin-bottom: 0;
 }
 
-.generate-row-fields .field:nth-child(1) {
-    flex: 1 1 200px;
+.generate-section {
+    margin-bottom: 20px;
 }
 
-.generate-row-fields .field:nth-child(2) {
-    flex: 2 1 320px;
+.generate-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 10px;
 }
 
-.generate-row-fields .field:nth-child(3) {
-    flex: 2 1 260px;
+.generate-section-header label {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
 }
 
-.generate-action {
-    flex: 0 0 auto;
-    align-self: flex-end;
+.generate-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-top: 20px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-soft);
 }
 
 @media (max-width: 640px) {
-    .generate-row-fields {
-        gap: 14px;
+    .generate-footer {
+        flex-wrap: wrap;
     }
 
-    .generate-action {
-        align-self: stretch;
-        width: 100%;
-    }
-
-    .generate-action .btn-row {
+    .generate-footer .btn-row {
         justify-content: stretch;
+        flex: 1 1 100%;
     }
 
-    .generate-action #generate-btn {
+    .generate-footer #generate-btn {
         flex: 1;
     }
 }
@@ -314,6 +325,45 @@ main {
         right: 0;
         width: min(280px, 90vw);
     }
+}
+
+/* ---- palette popover (click a color-count swatch to reassign its color) ----
+   Fixed (not absolute) since it's positioned from the clicked swatch's own
+   getBoundingClientRect() in app.js rather than a relatively-positioned
+   ancestor - the color-count-list rows have no such ancestor to anchor to. */
+
+.palette-popover {
+    position: fixed;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+    padding: 10px;
+    z-index: 20;
+}
+
+.palette-popover-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+}
+
+.palette-swatch-option {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    padding: 0;
+    cursor: pointer;
+}
+
+.palette-swatch-option:hover {
+    border-color: var(--accent);
+}
+
+.palette-swatch-option.active {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
 }
 
 /* ---- form fields ---- */
@@ -524,37 +574,31 @@ main {
     background: var(--accent);
 }
 
-/* ---- generate: colors & cell counts ---- */
-
-.colors-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    margin-bottom: 4px;
-}
-
-.colors-header label {
-    font-size: 11px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--muted);
-}
+/* ---- generate: colors & cell counts ----
+   A real grid (3-across, 2 below 720px) rather than flex-wrap, so each
+   swatch/input/normalize unit stays aligned regardless of how many colors
+   the board size calls for (up to 9 at a 9x9 board). */
 
 .color-count-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-    max-height: 260px;
-    overflow-y: auto;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px 16px;
+}
+
+@media (max-width: 720px) {
+    .color-count-list {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
 .color-count-row {
     display: flex;
     align-items: center;
-    flex: 1 1 180px;
-    min-width: 165px;
     gap: 8px;
+    background: var(--panel-inset);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-small);
+    padding: 7px 8px;
 }
 
 .color-count-row .normalize-btn {
@@ -568,14 +612,22 @@ main {
     flex-shrink: 0;
     display: inline-block;
     border: 1px solid var(--border);
+    padding: 0;
+    cursor: pointer;
+}
+
+.swatch.small:hover,
+.swatch.small:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 1px;
 }
 
 .color-count-row input[type="number"] {
     flex: 1 1 auto;
-    min-width: 44px;
+    min-width: 0;
     font: inherit;
     color: var(--ink);
-    background: var(--panel-inset);
+    background: var(--panel);
     border: 1px solid var(--border);
     border-radius: var(--radius-small);
     padding: 6px 8px;
@@ -588,10 +640,10 @@ main {
 }
 
 .cell-total {
-    font-size: 11px;
+    margin: 0;
+    font-size: 12px;
     color: var(--muted);
-    margin: 8px 0 0;
-    text-align: right;
+    font-variant-numeric: tabular-nums;
 }
 
 .cell-total.ok {
@@ -621,14 +673,15 @@ main {
 }
 
 .lock-cat-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+    gap: 8px;
 }
 
 .lock-cat-item {
     display: flex;
     align-items: center;
+    justify-content: center;
     gap: 5px;
     font-size: 12px;
     font-weight: 700;
@@ -664,6 +717,10 @@ main {
 
 .locked-toggle input {
     accent-color: var(--accent);
+}
+
+.randomizer-toggle {
+    margin-top: 0;
 }
 
 .hint {

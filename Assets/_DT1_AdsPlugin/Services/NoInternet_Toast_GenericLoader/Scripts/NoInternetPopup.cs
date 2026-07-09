@@ -3,6 +3,7 @@ using System.Collections;
 using AVN.AdsPlugin.Controllers;
 #endif
 using DG.Tweening;
+using Meowdoku;
 using TMPro;
 using UnityEngine;
 
@@ -11,17 +12,26 @@ public class NoInternetPopup : MonoBehaviour
     [SerializeField] private Transform Background;
     [SerializeField] private Transform noInternetPopup;
     [SerializeField] private int checkInterval;
+    [SerializeField] private TextMeshProUGUI messageText;
     [SerializeField] private TextMeshProUGUI buttonText;
+
+    private void OnEnable()
+    {
+        LocalizationService.Changed += ApplyLocalizedText;
+        ApplyLocalizedText();
+    }
+
+    private void OnDisable()
+    {
+        LocalizationService.Changed -= ApplyLocalizedText;
+    }
+
 #if USE_AVNADS_PLUGIN
     // Start is called before the first frame update
     void Start()
     {
         InvokeRepeating(nameof(CheckInternetConnectivity), 2, checkInterval);
-        if (buttonText == null) return;
-        if (GetAndroidApiLevel() < 29)
-            buttonText.text = "Enable WiFi";
-        else
-            buttonText.text = "Connect";
+        ApplyLocalizedText();
     }
 
     public bool CheckInternetConnectivity()
@@ -165,5 +175,46 @@ public class NoInternetPopup : MonoBehaviour
 #endif
     }
 #endif
+
+    private void ApplyLocalizedText()
+    {
+        ResolveTextReferences();
+
+        if (messageText != null)
+        {
+            messageText.text = LocalizationService.Get("noInternet.text");
+        }
+
+        if (buttonText != null)
+        {
+            buttonText.text = LocalizationService.Get("noInternet.retry");
+        }
+    }
+
+    private void ResolveTextReferences()
+    {
+        if (noInternetPopup == null)
+        {
+            return;
+        }
+
+        TextMeshProUGUI[] texts = noInternetPopup.GetComponentsInChildren<TextMeshProUGUI>(true);
+        foreach (TextMeshProUGUI text in texts)
+        {
+            if (text == null)
+            {
+                continue;
+            }
+
+            if (messageText == null && text.gameObject.name == "Description")
+            {
+                messageText = text;
+            }
+            else if (buttonText == null && text.gameObject.name == "Text (TMP)")
+            {
+                buttonText = text;
+            }
+        }
+    }
 
 }

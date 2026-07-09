@@ -156,7 +156,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: no internet available!
+  m_text: No Internet Connection
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: c734d13851b5340b3bc7f66f1605de76, type: 2}
   m_sharedMaterial: {fileID: 8521656189813110140, guid: c734d13851b5340b3bc7f66f1605de76, type: 2}
@@ -652,6 +652,7 @@ MonoBehaviour:
   Background: {fileID: 2536547949659525914}
   noInternetPopup: {fileID: 4848907545984194483}
   checkInterval: 5
+  messageText: {fileID: 8797412908321984843}
   buttonText: {fileID: 4753336029149027230}
 --- !u!114 &623340183064979297
 MonoBehaviour:
@@ -744,7 +745,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: ENABLE WIFI
+  m_text: Retry
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: c734d13851b5340b3bc7f66f1605de76, type: 2}
   m_sharedMaterial: {fileID: 2100000, guid: 5c3ed2f50007d45caa61838c39da0bb4, type: 2}

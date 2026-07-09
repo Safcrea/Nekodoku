@@ -99,7 +99,8 @@
 
         <section class="card generate-row">
             <div class="micro-label"><span class="glyph">&#9860;</span> Generate</div>
-            <div class="generate-row-fields">
+
+            <div class="generate-topbar">
                 <div class="field">
                     <label for="seed-input">Seed</label>
                     <div class="field-row">
@@ -107,40 +108,56 @@
                         <button class="btn small" id="random-seed-btn" title="Random seed">&#8635;</button>
                     </div>
                 </div>
-                <div class="field">
-                    <div class="colors-header">
-                        <label>Colors &amp; cell counts</label>
+            </div>
+
+            <div class="generate-section">
+                <div class="generate-section-header">
+                    <label>Colors &amp; cell counts</label>
+                    <div class="btn-row">
+                        <button class="btn small" id="randomize-counts-btn" title="Randomly redistribute cell counts across colors">Randomize counts</button>
                         <button class="btn small" id="even-split-btn" title="Reset to an even split">Even split</button>
                     </div>
-                    <div class="color-count-list" id="color-count-list"></div>
-                    <p class="cell-total" id="cell-total-row"></p>
                 </div>
-                <div class="field">
-                    <div class="colors-header">
-                        <label>Locked cats (start revealed)</label>
-                        <div class="field-row lock-randomize">
-                            <input type="number" id="lock-count-input" min="0" title="How many to randomize" />
-                            <button class="btn small" id="randomize-locks-btn" title="Randomly pick this many cats to lock">Randomize</button>
+                <div class="color-count-list" id="color-count-list"></div>
+                <p class="hint">Click a color swatch to swap in a different color from the palette.</p>
+            </div>
+
+            <div class="generate-section">
+                <div class="generate-section-header">
+                    <label>Locked cats (start revealed)</label>
+                    <div class="field-row lock-randomize">
+                        <input type="number" id="lock-count-input" min="0" title="How many to randomize" />
+                        <button class="btn small" id="randomize-locks-btn" title="Randomly pick this many cats to lock">Randomize</button>
+                    </div>
+                </div>
+                <div class="lock-cat-list" id="lock-cat-list"></div>
+            </div>
+
+            <div class="generate-footer">
+                <p class="cell-total" id="cell-total-row"></p>
+                <div class="btn-row">
+                    <label class="locked-toggle randomizer-toggle">
+                        <input type="checkbox" id="randomizer-toggle" />
+                        randomize counts &amp; locked cats before generating
+                    </label>
+                    <div class="info-anchor">
+                        <button class="info-btn" id="generate-info-btn" type="button" aria-label="About Generate" title="About Generate">i</button>
+                        <div class="info-popover" id="generate-info-popover" hidden>
+                            <p>Board size decides how many colors there are. Set how many cells each color gets - they must add up to every cell on the board (the Normalize button next to a row dumps the current gap onto that row).</p>
+                            <p>Check exactly which cats start revealed in Locked cats, or use Randomize to pick some for you.</p>
+                            <p>"Randomize counts &amp; locked cats before generating" re-rolls both of those the moment you press Generate, instead of using whatever's currently set.</p>
+                            <p>Same seed + size + counts + locks = same level, every time.</p>
                         </div>
                     </div>
-                    <div class="lock-cat-list" id="lock-cat-list"></div>
-                </div>
-                <div class="field generate-action">
-                    <div class="btn-row">
-                        <div class="info-anchor">
-                            <button class="info-btn" id="generate-info-btn" type="button" aria-label="About Generate" title="About Generate">i</button>
-                            <div class="info-popover" id="generate-info-popover" hidden>
-                                <p>Board size decides how many colors there are. Set how many cells each color gets - they must add up to every cell on the board (the Normalize button next to a row dumps the current gap onto that row).</p>
-                                <p>Check exactly which cats start revealed in Locked cats, or use Randomize to pick some for you.</p>
-                                <p>Same seed + size + counts + locks = same level, every time.</p>
-                            </div>
-                        </div>
-                        <button class="btn primary" id="generate-btn">Generate level</button>
-                    </div>
+                    <button class="btn primary" id="generate-btn">Generate level</button>
                 </div>
             </div>
         </section>
     </main>
+
+    <div class="palette-popover" id="palette-popover" hidden>
+        <div class="palette-popover-grid" id="palette-popover-grid"></div>
+    </div>
 
     <footer>same rules, same JSON as the game &mdash; drop saved files into Assets/_GameData/Systems/Data/Levels</footer>
 
