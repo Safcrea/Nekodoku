@@ -1,0 +1,34 @@
+{
+    "formatVersion": 1,
+    "id": "vuzqz9-4x4",
+    "title": "Whisker Lane",
+    "size": 4,
+    "regions": [
+        "1100",
+        "1100",
+        "1302",
+        "1333"
+    ],
+    "cats": [
+        {
+            "row": 0,
+            "column": 2,
+            "locked": true
+        },
+        {
+            "row": 1,
+            "column": 0,
+            "locked": false
+        },
+        {
+            "row": 2,
+            "column": 3,
+            "locked": true
+        },
+        {
+            "row": 3,
+            "column": 1,
+            "locked": false
+        }
+    ]
+}
