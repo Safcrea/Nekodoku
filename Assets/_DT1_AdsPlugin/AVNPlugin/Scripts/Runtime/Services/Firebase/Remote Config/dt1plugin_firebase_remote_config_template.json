@@ -1,0 +1,33 @@
+{
+  "conditions": [],
+  "parameters": {},
+  "parameterGroups": {
+    "Ad Configuration": {
+      "description": "Ad behavior and monetization settings - controls when ads show, frequency, and pricing",
+      "parameters": {
+        "PluginRemoteConfigData": {
+          "description": "Ad configuration settings (AdConfig) - controls when ads show, frequency, and pricing",
+          "valueType": "JSON",
+          "defaultValue": {
+            "value": "{\"EnableInterFromLevel\":3,\"InterAdDelay\":30.0,\"UseDelayBeforeFirstAd\":false,\"DelayBeforeFirstAdSeconds\":30.0,\"UseDelayBeforeFirstAdOnlyInFirstSession\":true,\"InterstitialShowMode\":1,\"ShowRateUsOnLevel\":4,\"ShowNotificationOnLevel\":5,\"EnableBannerAd\":true,\"EnableInterAd\":true,\"EnableRewardedAd\":true,\"EnableAppOpenAd\":true,\"RemoveAdInAppPrice\":\"0.99\"}"
+          }
+        }
+      }
+    },
+    "Ad Unit IDs": {
+      "description": "Network-specific ad unit identifiers - SDK keys and ad unit IDs for all ad types",
+      "parameters": {
+        "AdIdsRemoteConfigData": {
+          "description": "Ad unit IDs and SDK keys (AdsId Config) - network-specific identifiers for ad units",
+          "valueType": "JSON",
+          "defaultValue": {
+            "value": "{\"IsSdkKey\":\"\",\"BannerAdUnitId\":\"\",\"MrecAdUnitId\":\"\",\"RewardedAdUnitId\":\"\",\"InterAdUnitIds\":[],\"AppOpenInterAdUnitId\":\"\"}"
+          }
+        }
+      }
+    }
+  },
+  "version": {
+    "description": "DT1 Plugin Ad Config Template v1"
+  }
+}
