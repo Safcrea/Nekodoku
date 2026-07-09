@@ -24,11 +24,17 @@ namespace Meowdoku
     /// </summary>
     public sealed class GridCell : MonoBehaviour, IPointerClickHandler, IBeginDragHandler, IDragHandler, IEndDragHandler
     {
+        #region Constants
+
         private const string RevealedAnimationName = "Revealed";
         private const string SadAnimationName = "Sad";
         private const float CatRevealFlipWaitSeconds = 0.45f;
         private const float CatRevealFlipRotationForce = 150f;
         private const float CatRevealFlipRotationDrag = 10f;
+
+        #endregion
+
+        #region Serialized Fields
 
         [Header("Data")]
         [SerializeField] private RegionPalette regionPalette;
@@ -56,7 +62,6 @@ namespace Meowdoku
         [SerializeField] private float CatFoundPopSeconds = 0.24f;
         [SerializeField] private float CrossJellyScaleImpulse = 6f;
         [SerializeField] private float WrongPunchScaleImpulse = 5f;
-        [SerializeField] private float RevealedBaseAlpha = 0.6f;
         [SerializeField] private float TutorialDimmedAlpha = 0.28f;
         [SerializeField] private float TutorialDimFadeSeconds = 0.18f;
         [SerializeField] private float BaseShadeFadeSeconds = 0.16f;
@@ -68,6 +73,9 @@ namespace Meowdoku
         [SerializeField] private float HintMaxAlpha = 0.55f;
         [SerializeField] private float HintPulseSeconds = 0.55f;
 
+        #endregion
+
+        #region Public Properties
 
         /// <summary>
         /// Computed rather than cached from Awake() - a cell freshly Instantiate()'d into an
@@ -80,6 +88,10 @@ namespace Meowdoku
 
         public int Row { get; private set; }
         public int Column { get; private set; }
+
+        #endregion
+
+        #region Private State
 
         private BoardInputHandler inputHandler;
         private CellMark lastMark;
@@ -102,6 +114,10 @@ namespace Meowdoku
         private bool catHintActive;
         private Tween crossHintTween;
         private bool crossHintActive;
+
+        #endregion
+
+        #region Unity Lifecycle
 
         private void Awake()
         {
@@ -149,6 +165,10 @@ namespace Meowdoku
             catRevealFrontShown = false;
         }
 
+        #endregion
+
+        #region Setup & Binding
+
         public void Bind(BoardInputHandler owner, int row, int column)
         {
             inputHandler = owner;
@@ -164,13 +184,17 @@ namespace Meowdoku
                 baseImage.sprite = regionPalette != null ? regionPalette.SpriteForRegion(regionIndex) : null;
             }
 
-            SetBaseColorImmediate(ComputeBaseColor(lastRevealedCat));
+            SetBaseColorImmediate(Color.white);
         }
 
         public void SetInteractable(bool interactable)
         {
             canvasGroup.blocksRaycasts = interactable;
         }
+
+        #endregion
+
+        #region Tutorial Dimming
 
         /// <summary>
         /// Applies tutorial dimming without rewriting alpha when the mode is unchanged. RefreshVisuals
@@ -206,7 +230,9 @@ namespace Meowdoku
             };
         }
 
-        // ---- tutorial hint (fade in/out loop pointing at an unrevealed cat or an uncrossed cell) ----
+        #endregion
+
+        #region Tutorial Hints (fade in/out loop pointing at an unrevealed cat or an uncrossed cell)
 
         /// <summary>
         /// Loops the cat visual's opacity to hint "there is a cat here" without actually revealing it
@@ -286,6 +312,10 @@ namespace Meowdoku
             SetCrossHint(false);
         }
 
+        #endregion
+
+        #region Visual State Sync
+
         /// <summary>Syncs static appearance to the current board state. Called every gameplay refresh.</summary>
         public void Refresh(CellMark mark, bool revealedCat, bool revealedMiss)
         {
@@ -315,7 +345,7 @@ namespace Meowdoku
             }
             noCatImage.enabled = !revealedCat && revealedMiss;
             noCatImage.color = Color.red;
-            FadeBaseColorTo(ComputeBaseColor(revealedCat), BaseShadeFadeSeconds);
+            FadeBaseColorTo(Color.white, BaseShadeFadeSeconds);
 
             if (revealedCat)
             {
@@ -352,15 +382,6 @@ namespace Meowdoku
                     ApplyVisualState(lastMark, lastRevealedCat, lastRevealedMiss);
                 }).SetUpdate(true);
             }).SetUpdate(true);
-        }
-
-        /// <summary>Region identity now lives entirely in <see cref="baseImage"/>'s sprite (assigned in
-        /// <see cref="SetRegion"/>), so this only ever fades alpha - never tints toward a region hue.</summary>
-        private Color ComputeBaseColor(bool revealedCat)
-        {
-            Color color = Color.white;
-            color.a = revealedCat ? RevealedBaseAlpha : 1f;
-            return color;
         }
 
         private void FadeBaseColorTo(Color color, float seconds)
@@ -437,7 +458,9 @@ namespace Meowdoku
                 && Mathf.Approximately(a.a, b.a);
         }
 
-        // ---- intro ----
+        #endregion
+
+        #region Intro Animation
 
         public void PlayIntroPop(float delaySeconds, float durationSeconds, bool interactableAfter)
         {
@@ -461,7 +484,9 @@ namespace Meowdoku
             canvasGroup.blocksRaycasts = interactable;
         }
 
-        // ---- juice ----
+        #endregion
+
+        #region Juice & Reactions
 
         public void PlayCrossJelly()
         {
@@ -553,10 +578,12 @@ namespace Meowdoku
             }
 
             ApplyVisualState(lastMark, lastRevealedCat, lastRevealedMiss);
-            SetBaseColorImmediate(ComputeBaseColor(lastRevealedCat));
+            SetBaseColorImmediate(Color.white);
         }
 
-        // ---- input ----
+        #endregion
+
+        #region Input Handling
 
         public void OnPointerClick(PointerEventData eventData)
         {
@@ -599,6 +626,10 @@ namespace Meowdoku
         {
             inputHandler.EndCrossDrag();
         }
+
+        #endregion
+
+        #region Cat Reveal Flip Animation
 
         private void PlayRevealedCatAnimation(bool restart)
         {
@@ -687,5 +718,7 @@ namespace Meowdoku
             gridCellSpring.SetTargetRotation(Quaternion.identity);
             gridCellSpring.SetVelocityRotation(Vector3.zero);
         }
+
+        #endregion
     }
 }
