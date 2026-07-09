@@ -922,8 +922,8 @@ MonoBehaviour:
   autoPlayAnimation: Cat4
   restartAutoPlay: 1
   useUnscaledTime: 1
-  overrideFrameRate: 0
-  frameRateOverride: 12
+  overrideFrameRate: 1
+  frameRateOverride: 24
 --- !u!1 &1414888705
 GameObject:
   m_ObjectHideFlags: 0
@@ -1019,8 +1019,8 @@ MonoBehaviour:
   autoPlayAnimation: Cat3
   restartAutoPlay: 1
   useUnscaledTime: 1
-  overrideFrameRate: 0
-  frameRateOverride: 12
+  overrideFrameRate: 1
+  frameRateOverride: 24
 --- !u!1 &1463206583
 GameObject:
   m_ObjectHideFlags: 0
@@ -1256,7 +1256,7 @@ MonoBehaviour:
   m_BlockingObjects: 0
   m_BlockingMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 55
 --- !u!114 &1625668160
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1418,8 +1418,8 @@ MonoBehaviour:
   autoPlayAnimation: Cat1
   restartAutoPlay: 1
   useUnscaledTime: 1
-  overrideFrameRate: 0
-  frameRateOverride: 12
+  overrideFrameRate: 1
+  frameRateOverride: 24
 --- !u!1 &1685251918
 GameObject:
   m_ObjectHideFlags: 0
@@ -1515,8 +1515,8 @@ MonoBehaviour:
   autoPlayAnimation: Cat2
   restartAutoPlay: 1
   useUnscaledTime: 1
-  overrideFrameRate: 0
-  frameRateOverride: 12
+  overrideFrameRate: 1
+  frameRateOverride: 24
 --- !u!1 &2091485138
 GameObject:
   m_ObjectHideFlags: 0
@@ -1612,8 +1612,8 @@ MonoBehaviour:
   autoPlayAnimation: Cat5
   restartAutoPlay: 1
   useUnscaledTime: 1
-  overrideFrameRate: 0
-  frameRateOverride: 12
+  overrideFrameRate: 1
+  frameRateOverride: 24
 --- !u!1 &2110673304
 GameObject:
   m_ObjectHideFlags: 0

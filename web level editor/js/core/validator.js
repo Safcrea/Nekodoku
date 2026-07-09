@@ -1,21 +1,10 @@
-// Port of Assets/_GameData/Systems/Scripts/Meowdoku/Editor/NekoLevelValidator.cs
-// (plus the shape checks LevelData.ToLevel performs in C#). Both implementations
-// must agree on every level; tests/validate-goldens.mjs guards that parity
-// against the game's full exported level set.
+// Structural checks mirroring the shape checks LevelData.ToLevel performs in
+// C# (there's no C# structural/uniqueness validator anymore - see CLAUDE.md's
+// "Level data pipeline" section - so this JS validator is the only place a
+// level's solvability is checked before it ships). tests/validate-goldens.mjs
+// guards parity against the game's full exported level set.
 
 import { regionAt } from "./model.js";
-
-export const BLOCKED_TARGET_WORDS = new Set([
-    "SEX",
-    "SEXY",
-    "NUDE",
-    "NAKED",
-    "DRUGS",
-    "HATE",
-    "KILL",
-    "DEATH",
-    "BLOOD",
-]);
 
 /**
  * Structural checks, mirroring NekoLevelValidator.FindStructuralIssues.
@@ -47,34 +36,9 @@ export function findStructuralIssues(level) {
         issues.push(`${label}: has ${level.cats.length} cats but size is ${size}.`);
     }
 
-    addTargetWordIssues(level, label, issues);
     addRegionIssues(level, label, issues);
     addCatIssues(level, label, issues);
     return issues;
-}
-
-function addTargetWordIssues(level, label, issues) {
-    const word = level.cats.map((cat) => cat.letter).join("");
-    if (word.length === 0) {
-        issues.push(`${label}: missing a target word.`);
-        return;
-    }
-
-    if (word.length !== level.size) {
-        issues.push(`${label}: target word length must match board size.`);
-    }
-
-    if (word.length >= 13) {
-        issues.push(`${label}: target word must be shorter than 13 letters.`);
-    }
-
-    if (BLOCKED_TARGET_WORDS.has(word)) {
-        issues.push(`${label}: target word is blocked.`);
-    }
-
-    if (!/^[A-Z]*$/.test(word)) {
-        issues.push(`${label}: target word must contain A-Z letters only.`);
-    }
 }
 
 function addRegionIssues(level, label, issues) {

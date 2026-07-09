@@ -1,8 +1,10 @@
-# Meowdoku Level Editor (web)
+# AVN Level Editor: PawDoku (web)
 
 Browser-based editor for the game's JSON level format. Same rules, same files:
 anything saved here drops straight into `Assets/_GameData/Systems/Data/Levels/`
-and registers via the Unity `LevelDatabase` (or the in-Unity Level Editor).
+and registers via the Unity `LevelDatabase` (hand-drag the new `TextAsset`
+into its `levelFiles` list in the Inspector). This is the only way to author
+or validate a level — there's no in-Unity level tooling anymore.
 
 No build step, no dependencies — plain ES modules.
 
@@ -11,7 +13,7 @@ No build step, no dependencies — plain ES modules.
 Browsers block ES modules from `file://`, so serve the folder:
 
 ```sh
-cd Website
+cd "web level editor"
 python3 -m http.server 8377     # or: npm run serve
 # open http://localhost:8377
 ```
@@ -21,10 +23,11 @@ folder as-is.
 
 ## Test (validator parity)
 
-The JS validator is a port of `NekoLevelValidator.cs` and must always agree
-with it. The guard is the golden-corpus test, which checks every level the game
-ships for structural validity, solution uniqueness, and byte-identical
-round-trip serialization against Unity's `JsonUtility` output:
+There's no C# structural/uniqueness validator anymore — this JS validator is
+the only place a level's solvability is checked before it ships (see
+CLAUDE.md's "Level data pipeline"). The guard is the golden-corpus test, which
+checks every level the game ships for structural validity, solution
+uniqueness, and byte-identical round-trip serialization:
 
 ```sh
 npm test
@@ -33,14 +36,13 @@ npm test
 ```
 
 **Run this after any change to the level format or rules — in either codebase.**
-If you change `LevelData.cs` / `NekoLevelValidator.cs`, mirror the change in
-`js/core/` and re-export the levels from Unity so the corpus reflects the new
-format.
+If you change `LevelData.cs` or the game's puzzle rules, mirror the change in
+`js/core/` so the two never silently drift apart.
 
 ## Layout
 
 - `js/core/model.js` — level parse/serialize (mirrors `LevelData.cs`)
-- `js/core/validator.js` — structural checks + solver (mirrors `NekoLevelValidator.cs`)
+- `js/core/validator.js` — structural checks (mirroring `LevelData.ToLevel()`'s shape checks) + the solver
 - `js/core/generator.js` — seeded procedural generator (web-only)
 - `js/app.js` — editor UI (state, grid painting, animations, import/export, theming)
 - `tests/validate-goldens.mjs` — parity test against the game's exported levels
@@ -50,18 +52,44 @@ format.
 
 ## Using the editor
 
-- **Generate** — type any seed (or hit the dice) and press Generate: a complete,
-  uniquely-solvable level at the current board size, with word, title, and
-  starter clues. Deterministic — the same seed + size always produces the same
-  level, so a seed is a shareable level. Sizes 4-9 (3×3 boards have no legal
-  layout under the rules). Under the hood: place a legal cat solution, grow
-  snaky regions from the cats, then hill-climb boundary-cell flips until the
-  solver confirms the solution is unique.
+- **Level** card only has an Id field now (plus Size) — there's no separate
+  Title input. A hand-painted level's title is derived from the Id
+  (`porch-patrol` → "Porch Patrol"); a generated level keeps the generator's
+  own nicer adjective+noun title (only until you edit the Id afterward, which
+  re-derives the title from it same as a hand-painted level).
+- **Size** decides the board and, with it, how many colors (regions) there
+  are — one region per row, always `size` of them, each holding exactly one
+  cat.
+- **Generate** — type any seed (or hit the dice), set how many cells each
+  color should get in the "Colors & cell counts" list (defaults to an even
+  split; "Even split" resets it; each row's **Normalize** button dumps the
+  current gap onto that row, so after hand-editing one row away from even you
+  can fix the total by pressing Normalize on any *other* row without touching
+  the one you just set), and pick which cats start revealed in "Locked cats"
+  (check exactly which ones, or set a count and press Randomize) — then press
+  Generate. The counts must add up to exactly `size × size` — the Generate
+  button stays disabled until they do (hover it for why). Deterministic — the
+  same seed + size + counts + locks always produces the same level, so a
+  seed+split+locks combo is a shareable level. Sizes 4-9 (3×3 boards have no
+  legal layout under the rules). Under the hood: place a legal cat solution,
+  grow snaky regions from the cats toward the requested split, then
+  hill-climb boundary-cell flips until the solver confirms the solution is
+  unique *and* every region matches its requested cell count exactly. Very
+  even splits on large boards (8×8/9×9) are the hardest case — they're highly
+  symmetric, which admits far more alternate solutions — so those can take a
+  few seconds or occasionally fail with a "try different counts or another
+  seed" error; skewed splits (a couple of big colors, the rest small) are far
+  faster even at 9×9.
 - **Regions mode** — pick a color swatch, click or drag across the board.
-- **Cats mode** — pick a letter slot, click its cell; click a placed cat to
-  remove it; "starts revealed" marks the selected letter's cat as a free clue.
+- **Cats mode** — pick a numbered cat slot, click its cell; click a placed cat
+  to remove it; "starts revealed" toggles that one cat as a free clue (same
+  effect as the Generate panel's Locked cats picker, just after the fact).
+  There is no target word anymore — the old word-spelling feature was removed
+  from the game (see CLAUDE.md's "Runtime architecture" section on
+  `GameplayScreen` / `CatCounter`), and `LevelCatData` no longer carries a
+  `letter` field to match.
 - **Auto-place cats** — when the region layout has exactly one legal solution,
-  places every letter's cat on it (row order).
+  places every cat on it (row order); disabled (hover for why) otherwise.
 - **Validation** — live: solution count from the region layout, plus the same
-  structural checks the Unity editor and tests run.
+  structural checks the game's `LevelData.ToLevel()` shape checks run.
 - **File** — download/copy the JSON, or paste/open an existing level to edit.

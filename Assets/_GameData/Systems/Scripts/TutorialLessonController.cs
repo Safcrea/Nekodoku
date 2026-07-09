@@ -39,7 +39,6 @@ namespace Meowdoku
         private const float PhaseTransitionSeconds = 0.5f;
         private const float GuideMoveLerpSpeed = 10f;
         private const float InfoCardPopSeconds = 0.3f;
-        private const float InfoCardHoldSeconds = 1.3f;
         private const float InfoCardFadeOutSeconds = 0.3f;
         private const string RevealCatInfoText = "Double Tap To Reveal The Cat.";
         private const string FindLastCatInfoText = "Find The Last Cat Now.";
@@ -123,7 +122,7 @@ namespace Meowdoku
         [Tooltip("1 = Febucci's default typing speed. Higher = faster.")]
         [SerializeField] private float typewriterSpeedMultiplier = 2.5f;
 
-        [Header("Info card (one-off instruction, e.g. \"Double Tap To Reveal The Cat\" - pops in, types, holds, fades out)")]
+        [Header("Info card (one-off instruction, e.g. \"Double Tap To Reveal The Cat\" - pops in, types, then waits for step completion)")]
         [SerializeField] private RectTransform infoCardRoot;
         [SerializeField] private CanvasGroup infoCardCanvasGroup;
         [SerializeField] private TMP_Text infoCardText;
@@ -153,9 +152,9 @@ namespace Meowdoku
         private Coord? hintedCatCoord;
         private Coord[] hintedCrossCells = Array.Empty<Coord>();
         private Sequence infoCardSequence;
-        private Tween infoCardHideTween;
         private bool infoCardActive;
         private Coroutine infoCardShowRoutine;
+        private bool waitingForFinalCatInfoDismiss;
 
         public bool ShouldPlay => lessonLevelJson != null && !PlayerPrefs.HasKey(LessonSeenPlayerPrefsKey);
 
@@ -181,6 +180,7 @@ namespace Meowdoku
 
             ResetRuleCardBodyText();
             ResetInfoCardText();
+            SetGuideRaycastTargets(false);
         }
 
         /// <summary>
@@ -222,9 +222,36 @@ namespace Meowdoku
             BuildRuleSteps();
             HideAllTabs();
             SetDimOverlayImmediate(false);
+            waitingForFinalCatInfoDismiss = false;
 
             lessonActive = true;
             EnterPhase(Phase.RevealCat0);
+        }
+
+        public void OnCatRevealCompleted(Coord cat)
+        {
+            if (board == null)
+            {
+                return;
+            }
+
+            if (lessonActive)
+            {
+                if (IsCurrentRevealCat(cat))
+                {
+                    HideInfoCard();
+                }
+
+                return;
+            }
+
+            if (!waitingForFinalCatInfoDismiss || board.RevealedCatCount() < board.Size)
+            {
+                return;
+            }
+
+            waitingForFinalCatInfoDismiss = false;
+            HideInfoCard();
         }
 
         /// <summary>Call whenever the lesson board's marks change (from GameManager's own input path while the lesson is active).</summary>
@@ -277,6 +304,11 @@ namespace Meowdoku
             SubGuide guide = step.SubGuides[ruleSubGuideIndex];
             if (!AllCrossed(guide.Cells))
             {
+                if (guide.IsDrag && AnyCrossed(guide.Cells))
+                {
+                    PointAtSubGuide(step);
+                }
+
                 return;
             }
 
@@ -338,6 +370,19 @@ namespace Meowdoku
             }
 
             return true;
+        }
+
+        private bool AnyCrossed(Coord[] cells)
+        {
+            foreach (Coord cell in cells)
+            {
+                if (board.GetMark(cell.Row, cell.Column) == CellMark.Cross)
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private void EnterPhase(Phase next)
@@ -519,7 +564,7 @@ namespace Meowdoku
         }
 
         // ---- info card (transient instruction, e.g. "Double Tap To Reveal The Cat" - pops in, types,
-        // holds, then fades away entirely rather than docking anywhere like the rule cards do) ----
+        // then fades only when the step it describes is actually completed) ----
 
         /// <summary>
         /// Defers the actual show by one frame. The very first call happens synchronously inside
@@ -553,8 +598,6 @@ namespace Meowdoku
             }
 
             infoCardSequence?.Kill();
-            infoCardHideTween?.Kill();
-            infoCardHideTween = null;
             infoCardActive = true;
 
             infoCardRoot.gameObject.SetActive(true);
@@ -581,23 +624,22 @@ namespace Meowdoku
                 {
                     infoCardText.text = text;
                 }
-
-                infoCardHideTween = DOVirtual.DelayedCall(FallbackHoldSeconds, HideInfoCard, false).SetUpdate(true);
             }
         }
 
         private void OnInfoCardTextFullyShown()
         {
-            if (!infoCardActive)
-            {
-                return;
-            }
-
-            infoCardHideTween = DOVirtual.DelayedCall(InfoCardHoldSeconds, HideInfoCard, false).SetUpdate(true);
+            // Info cards intentionally stay visible until the step's completion callback hides them.
         }
 
         private void HideInfoCard()
         {
+            if (infoCardShowRoutine != null)
+            {
+                StopCoroutine(infoCardShowRoutine);
+                infoCardShowRoutine = null;
+            }
+
             if (!infoCardActive || infoCardRoot == null)
             {
                 return;
@@ -634,10 +676,26 @@ namespace Meowdoku
         private void PointAtSubGuide(RuleStep step)
         {
             SubGuide guide = step.SubGuides[ruleSubGuideIndex];
-            Coord[] allowed = guide.Cells.Length > 0 ? guide.Cells : new[] { guide.Start };
+            Coord[] remainingCells = RemainingGuideCells(guide);
+            Coord[] allowed = remainingCells.Length > 0 ? remainingCells : guide.Cells.Length > 0 ? guide.Cells : new[] { guide.Start };
             boardView.SetTutorialRestriction(allowed, TutorialRequiredCells());
             boardView.RefreshVisuals(board, false);
-            ShowCrossGuide(guide);
+            ShowCrossGuide(guide, remainingCells);
+        }
+
+        private Coord[] RemainingGuideCells(SubGuide guide)
+        {
+            Coord[] cells = guide.Cells.Length > 0 ? guide.Cells : new[] { guide.Start };
+            List<Coord> remainingCells = new List<Coord>(cells.Length);
+            foreach (Coord cell in cells)
+            {
+                if (board.GetMark(cell.Row, cell.Column) != CellMark.Cross)
+                {
+                    remainingCells.Add(cell);
+                }
+            }
+
+            return remainingCells.ToArray();
         }
 
         private HashSet<Coord> TutorialRequiredCells()
@@ -670,6 +728,20 @@ namespace Meowdoku
             SetAlpha(rowColumnTab, 0f);
             SetAlpha(touchingTab, 0f);
             SetAlpha(colorTab, 0f);
+        }
+
+        private void SetGuideRaycastTargets(bool raycastTarget)
+        {
+            if (tutorialGuideRoot == null)
+            {
+                return;
+            }
+
+            Graphic[] graphics = tutorialGuideRoot.GetComponentsInChildren<Graphic>(true);
+            foreach (Graphic graphic in graphics)
+            {
+                graphic.raycastTarget = raycastTarget;
+            }
         }
 
         private static void SetAlpha(RectTransform rect, float alpha)
@@ -738,9 +810,21 @@ namespace Meowdoku
             StopGuide();
             boardView.ClearTutorialRestriction();
             boardView.RefreshVisuals(board, false);
+            waitingForFinalCatInfoDismiss = true;
             ShowInfoCard(FindLastCatInfoText);
             PlayerPrefs.SetInt(LessonSeenPlayerPrefsKey, 1);
             onLessonComplete?.Invoke();
+        }
+
+        private bool IsCurrentRevealCat(Coord cat)
+        {
+            return phase switch
+            {
+                Phase.RevealCat0 => cat.Equals(catCoords[0]),
+                Phase.RevealCat1 => cat.Equals(catCoords[1]),
+                Phase.RevealCat2 => cat.Equals(catCoords[2]),
+                _ => false,
+            };
         }
 
         private static CanvasGroup ResolveCanvasGroup(RectTransform rect)
@@ -776,10 +860,10 @@ namespace Meowdoku
             guideRoutine = StartCoroutine(AnimateRevealGuide(cat));
         }
 
-        private void ShowCrossGuide(SubGuide guide)
+        private void ShowCrossGuide(SubGuide guide, Coord[] cellsToHint = null)
         {
             ClearHints();
-            Coord[] cells = guide.Cells.Length > 0 ? guide.Cells : new[] { guide.Start };
+            Coord[] cells = cellsToHint != null && cellsToHint.Length > 0 ? cellsToHint : guide.Cells.Length > 0 ? guide.Cells : new[] { guide.Start };
             SetCrossHint(cells, true);
             hintedCrossCells = cells;
 

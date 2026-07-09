@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Meowdoku Level Editor</title>
+    <title>AVN Level Editor: PawDoku</title>
     <link rel="stylesheet" href="css/styles.css" />
     <script>
         // Apply the saved theme before first paint to avoid a flash.
@@ -18,7 +18,7 @@
 <body>
     <header class="card">
         <div class="brand">
-            <span class="title">&#9701; MEOWDOKU</span>
+            <span class="title">&#9701; AVN Level Editor: PawDoku</span>
             <span class="subtitle">level editor &mdash; paint regions, place cats, ship puzzles</span>
         </div>
         <div class="theme-switch" id="theme-switch" role="group" aria-label="Theme">
@@ -33,12 +33,8 @@
             <section class="card">
                 <div class="micro-label"><span class="glyph">&#9881;</span> Level</div>
                 <div class="field">
-                    <label for="title-input">Title</label>
-                    <input type="text" id="title-input" autocomplete="off" />
-                </div>
-                <div class="field">
                     <label for="id-input">Id (filename)</label>
-                    <input type="text" id="id-input" autocomplete="off" placeholder="auto from title" />
+                    <input type="text" id="id-input" autocomplete="off" placeholder="auto from generated title" />
                 </div>
                 <div class="field">
                     <label for="size-input">Size</label>
@@ -47,25 +43,6 @@
                         <span class="size-value" id="size-value">5&times;5</span>
                     </div>
                 </div>
-                <div class="field">
-                    <label for="word-input">Target word</label>
-                    <input type="text" id="word-input" autocomplete="off" spellcheck="false" />
-                </div>
-            </section>
-
-            <section class="card">
-                <div class="micro-label"><span class="glyph">&#9860;</span> Generate</div>
-                <div class="field">
-                    <label for="seed-input">Seed</label>
-                    <div class="field-row">
-                        <input type="text" id="seed-input" autocomplete="off" spellcheck="false" placeholder="any text" />
-                        <button class="btn small" id="random-seed-btn" title="Random seed">&#8635;</button>
-                    </div>
-                </div>
-                <div class="btn-row">
-                    <button class="btn primary" id="generate-btn">Generate level</button>
-                </div>
-                <p class="hint">Same seed + size = same level, every time. Uses the current board size (4&times;4 minimum).</p>
             </section>
 
             <section class="card">
@@ -79,12 +56,12 @@
                     <p class="hint">Pick a color, then click or drag across the board.</p>
                 </div>
                 <div id="cats-controls" hidden>
-                    <div class="swatch-row" id="letter-row"></div>
+                    <div class="swatch-row" id="cat-row"></div>
                     <label class="locked-toggle">
                         <input type="checkbox" id="locked-toggle" />
                         starts revealed (locked)
                     </label>
-                    <p class="hint">Pick a letter, then click its cell. Click a placed cat to remove it.</p>
+                    <p class="hint">Pick a cat, then click its cell. Click a placed cat to remove it.</p>
                 </div>
             </section>
         </div>
@@ -119,6 +96,50 @@
                 </div>
             </section>
         </div>
+
+        <section class="card generate-row">
+            <div class="micro-label"><span class="glyph">&#9860;</span> Generate</div>
+            <div class="generate-row-fields">
+                <div class="field">
+                    <label for="seed-input">Seed</label>
+                    <div class="field-row">
+                        <input type="text" id="seed-input" autocomplete="off" spellcheck="false" placeholder="any text" />
+                        <button class="btn small" id="random-seed-btn" title="Random seed">&#8635;</button>
+                    </div>
+                </div>
+                <div class="field">
+                    <div class="colors-header">
+                        <label>Colors &amp; cell counts</label>
+                        <button class="btn small" id="even-split-btn" title="Reset to an even split">Even split</button>
+                    </div>
+                    <div class="color-count-list" id="color-count-list"></div>
+                    <p class="cell-total" id="cell-total-row"></p>
+                </div>
+                <div class="field">
+                    <div class="colors-header">
+                        <label>Locked cats (start revealed)</label>
+                        <div class="field-row lock-randomize">
+                            <input type="number" id="lock-count-input" min="0" title="How many to randomize" />
+                            <button class="btn small" id="randomize-locks-btn" title="Randomly pick this many cats to lock">Randomize</button>
+                        </div>
+                    </div>
+                    <div class="lock-cat-list" id="lock-cat-list"></div>
+                </div>
+                <div class="field generate-action">
+                    <div class="btn-row">
+                        <div class="info-anchor">
+                            <button class="info-btn" id="generate-info-btn" type="button" aria-label="About Generate" title="About Generate">i</button>
+                            <div class="info-popover" id="generate-info-popover" hidden>
+                                <p>Board size decides how many colors there are. Set how many cells each color gets - they must add up to every cell on the board (the Normalize button next to a row dumps the current gap onto that row).</p>
+                                <p>Check exactly which cats start revealed in Locked cats, or use Randomize to pick some for you.</p>
+                                <p>Same seed + size + counts + locks = same level, every time.</p>
+                            </div>
+                        </div>
+                        <button class="btn primary" id="generate-btn">Generate level</button>
+                    </div>
+                </div>
+            </div>
+        </section>
     </main>
 
     <footer>same rules, same JSON as the game &mdash; drop saved files into Assets/_GameData/Systems/Data/Levels</footer>

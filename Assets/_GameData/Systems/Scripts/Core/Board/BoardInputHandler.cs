@@ -29,6 +29,7 @@ namespace Meowdoku
         private GameplayScreen gameplayScreen;
 
         private bool inputLocked;
+        private bool resultLocked;
         private bool crossDragging;
         private bool crossDragPlacesCrosses;
         private bool crossDragHasUndoSnapshot;
@@ -42,7 +43,7 @@ namespace Meowdoku
         private readonly List<RaycastResult> pointerRaycastResults = new List<RaycastResult>();
         private PointerEventData sharedPointerEventData;
 
-        public bool InputLocked => inputLocked;
+        public bool InputLocked => inputLocked || resultLocked;
 
         public void Initialize(GameManager manager, BoardView board, GameplayScreen screen)
         {
@@ -58,7 +59,7 @@ namespace Meowdoku
 
         public void ToggleCross(int row, int column)
         {
-            if (inputLocked)
+            if (InputLocked)
             {
                 return;
             }
@@ -89,7 +90,7 @@ namespace Meowdoku
 
         public void CommitCat(int row, int column)
         {
-            if (inputLocked || gameManager.IsLessonCommitBlocked)
+            if (InputLocked || gameManager.IsLessonCommitBlocked)
             {
                 return;
             }
@@ -129,7 +130,7 @@ namespace Meowdoku
 
         public void ResetCrosses()
         {
-            if (inputLocked || gameManager?.Board == null)
+            if (InputLocked || gameManager?.Board == null)
             {
                 return;
             }
@@ -171,6 +172,7 @@ namespace Meowdoku
 
             inputLocked = false;
             catRevealRoutine = null;
+            gameManager.NotifyCatRevealCompleted(new Coord(row, column));
             gameManager.Refresh();
         }
 
@@ -188,9 +190,24 @@ namespace Meowdoku
             StopOffTilePointerTracking();
         }
 
+        public void SetResultLocked(bool locked)
+        {
+            resultLocked = locked;
+            if (!locked)
+            {
+                return;
+            }
+
+            crossDragging = false;
+            crossDragHasUndoSnapshot = false;
+            lastCrossDragRow = -1;
+            lastCrossDragColumn = -1;
+            StopOffTilePointerTracking();
+        }
+
         public void BeginCrossDrag(PointerEventData eventData)
         {
-            if (inputLocked)
+            if (InputLocked)
             {
                 return;
             }
@@ -216,7 +233,7 @@ namespace Meowdoku
 
         public void CrossAtPointer(PointerEventData eventData)
         {
-            if (inputLocked || !crossDragging)
+            if (InputLocked || !crossDragging)
             {
                 return;
             }
@@ -288,7 +305,7 @@ namespace Meowdoku
 
         private void UpdateOffTileCrossDrag()
         {
-            if (inputLocked || gameManager?.Board == null || boardView == null)
+            if (InputLocked || gameManager?.Board == null || boardView == null)
             {
                 StopOffTilePointerTracking();
                 return;
@@ -444,7 +461,7 @@ namespace Meowdoku
 
         private void CrossAtPointer(Vector2 screenPosition, Camera eventCamera)
         {
-            if (inputLocked || !crossDragging)
+            if (InputLocked || !crossDragging)
             {
                 return;
             }

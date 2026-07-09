@@ -1,4 +1,4 @@
-/* Meowdoku Level Editor — retro-terminal dashboard look.
+/* AVN Level Editor: PawDoku — retro-terminal dashboard look.
    Light theme is the default; [data-theme="dark"] overrides, and AUTO mode
    (no data-theme attribute) follows prefers-color-scheme. */
 
@@ -68,6 +68,13 @@ body {
     font-family: var(--font);
     font-size: 14px;
     line-height: 1.45;
+}
+
+@media (max-width: 640px) {
+    body {
+        padding: 10px;
+        font-size: 13px;
+    }
 }
 
 /* ---- cards & labels ---- */
@@ -170,10 +177,143 @@ main {
     }
 }
 
+@media (max-width: 640px) {
+    main {
+        gap: 12px;
+    }
+}
+
 .stack {
     display: flex;
     flex-direction: column;
     gap: 16px;
+}
+
+@media (max-width: 640px) {
+    .stack {
+        gap: 12px;
+    }
+}
+
+/* ---- generate row ----
+   Sits as its own full-width row below the Level/Board/Validation row
+   (rather than a tall card in the narrow left column), with its fields laid
+   out side by side instead of stacked - the whole point being to trade
+   height for width now that it has the room. */
+
+.generate-row {
+    grid-column: 1 / -1;
+}
+
+.generate-row-fields {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 24px;
+}
+
+.generate-row-fields .field {
+    margin-bottom: 0;
+}
+
+.generate-row-fields .field:nth-child(1) {
+    flex: 1 1 200px;
+}
+
+.generate-row-fields .field:nth-child(2) {
+    flex: 2 1 320px;
+}
+
+.generate-row-fields .field:nth-child(3) {
+    flex: 2 1 260px;
+}
+
+.generate-action {
+    flex: 0 0 auto;
+    align-self: flex-end;
+}
+
+@media (max-width: 640px) {
+    .generate-row-fields {
+        gap: 14px;
+    }
+
+    .generate-action {
+        align-self: stretch;
+        width: 100%;
+    }
+
+    .generate-action .btn-row {
+        justify-content: stretch;
+    }
+
+    .generate-action #generate-btn {
+        flex: 1;
+    }
+}
+
+/* ---- info popover (the "i" button next to Generate level) ---- */
+
+.info-anchor {
+    position: relative;
+    display: inline-flex;
+}
+
+.info-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--panel-inset);
+    color: var(--muted);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 700;
+    font-style: italic;
+    cursor: pointer;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.info-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+}
+
+.info-popover {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 0;
+    width: max(260px, 60vw);
+    max-width: 320px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+    padding: 10px 12px;
+    z-index: 10;
+}
+
+.info-popover p {
+    margin: 0 0 8px;
+    font-size: 11px;
+    color: var(--muted);
+    font-style: italic;
+    line-height: 1.5;
+}
+
+.info-popover p:last-child {
+    margin-bottom: 0;
+}
+
+@media (max-width: 640px) {
+    .info-popover {
+        left: auto;
+        right: 0;
+        width: min(280px, 90vw);
+    }
 }
 
 /* ---- form fields ---- */
@@ -209,6 +349,7 @@ main {
 .field-row {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
     gap: 10px;
 }
 
@@ -348,7 +489,7 @@ main {
     outline-offset: 1px;
 }
 
-.letter-slot {
+.cat-slot {
     width: 34px;
     height: 34px;
     border: 1px solid var(--border);
@@ -363,17 +504,17 @@ main {
     position: relative;
 }
 
-.letter-slot.active {
+.cat-slot.active {
     outline: 3px solid var(--accent);
     outline-offset: 1px;
 }
 
-.letter-slot.placed {
+.cat-slot.placed {
     background: var(--panel);
     border-color: var(--ok);
 }
 
-.letter-slot .lock-dot {
+.cat-slot .lock-dot {
     position: absolute;
     top: 3px;
     right: 4px;
@@ -381,6 +522,133 @@ main {
     height: 6px;
     border-radius: 50%;
     background: var(--accent);
+}
+
+/* ---- generate: colors & cell counts ---- */
+
+.colors-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.colors-header label {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--muted);
+}
+
+.color-count-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    max-height: 260px;
+    overflow-y: auto;
+}
+
+.color-count-row {
+    display: flex;
+    align-items: center;
+    flex: 1 1 180px;
+    min-width: 165px;
+    gap: 8px;
+}
+
+.color-count-row .normalize-btn {
+    flex-shrink: 0;
+}
+
+.swatch.small {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    flex-shrink: 0;
+    display: inline-block;
+    border: 1px solid var(--border);
+}
+
+.color-count-row input[type="number"] {
+    flex: 1 1 auto;
+    min-width: 44px;
+    font: inherit;
+    color: var(--ink);
+    background: var(--panel-inset);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
+    padding: 6px 8px;
+    width: 100%;
+}
+
+.color-count-row input[type="number"]:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: -1px;
+}
+
+.cell-total {
+    font-size: 11px;
+    color: var(--muted);
+    margin: 8px 0 0;
+    text-align: right;
+}
+
+.cell-total.ok {
+    color: var(--ok);
+    font-weight: 700;
+}
+
+.cell-total.danger {
+    color: var(--danger);
+    font-weight: 700;
+}
+
+/* ---- generate: locked cats ---- */
+
+.lock-randomize {
+    gap: 6px;
+}
+
+.lock-randomize input[type="number"] {
+    width: 4.5em;
+    font: inherit;
+    color: var(--ink);
+    background: var(--panel-inset);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
+    padding: 4px 8px;
+}
+
+.lock-cat-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.lock-cat-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink);
+    background: var(--panel-inset);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
+    padding: 5px 9px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.lock-cat-item:has(input:checked) {
+    border-color: var(--accent);
+    background: var(--panel);
+}
+
+.lock-cat-item input {
+    accent-color: var(--accent);
+    margin: 0;
 }
 
 .locked-toggle {
@@ -413,11 +681,23 @@ main {
     padding: 6px 0;
 }
 
+/* Fixed box regardless of board size (3x3 up to 9x9) - JS reads this resolved
+   width (updateBoardSizing in app.js) and divides it into state.size cells,
+   so growing the grid shrinks the cells to fit rather than growing the box.
+   Shrinks with the viewport on narrow screens via the min(...) width. */
 .board {
     display: grid;
     gap: 5px;
     touch-action: none;
     user-select: none;
+    width: min(480px, 100%);
+    aspect-ratio: 1 / 1;
+}
+
+@media (max-width: 640px) {
+    .board {
+        width: min(400px, 100%);
+    }
 }
 
 .cell {
@@ -448,7 +728,7 @@ main {
     border: 1px solid var(--border);
 }
 
-.cell.selected-letter {
+.cell.selected-cat {
     outline: 3px solid var(--accent);
     outline-offset: 1px;
     z-index: 1;

@@ -15,6 +15,7 @@ namespace Meowdoku
         private const float IntroStaggerSeconds = 0.08f;
         private const float OutroSeconds = 0.22f;
         private const float LostPunchSeconds = 0.32f;
+        private const float GainedPopSeconds = 0.34f;
 
         private static readonly Color AliveColor = Color.white;
         private static readonly Color LostColor = new Color(1f, 1f, 1f, 0.25f);
@@ -90,6 +91,26 @@ namespace Meowdoku
             rect.DOKill();
             rect.localScale = Vector3.one;
             rect.DOPunchScale(new Vector3(0.35f, 0.35f, 0f), LostPunchSeconds, 6, 0.6f).SetUpdate(true);
+        }
+
+        public void PlayHeartGainedEffect(int heartsRemaining)
+        {
+            int gainedIndex = heartsRemaining - 1;
+            if (gainedIndex < 0 || gainedIndex >= hearts.Length || hearts[gainedIndex] == null)
+            {
+                return;
+            }
+
+            Image heart = hearts[gainedIndex];
+            heart.color = AliveColor;
+
+            RectTransform rect = heart.rectTransform;
+            rect.DOKill();
+            rect.localScale = Vector3.zero;
+
+            Sequence sequence = DOTween.Sequence().SetUpdate(true);
+            sequence.Append(rect.DOScale(1.16f, GainedPopSeconds * 0.58f).SetEase(Ease.OutBack));
+            sequence.Append(rect.DOScale(1f, GainedPopSeconds * 0.42f).SetEase(Ease.InOutSine));
         }
     }
 }

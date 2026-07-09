@@ -21,6 +21,16 @@ namespace Meowdoku
         private const float BoardIntroDiagonalDelaySeconds = 0.045f;
         private const float ShakeHorizontalImpulse = 14f;
         private const float ShakeVerticalImpulse = 4f;
+        private const float CompleteBoardScale = 0.94f;
+        private const float CompleteBoardAlpha = 0.82f;
+        private const float CompleteBoardPoseSeconds = 0.45f;
+        private const float CompleteCellMaxDelaySeconds = 0.35f;
+        private const float FailureBoardScale = 0.98f;
+        private const float FailureBoardAlpha = 0.72f;
+        private const float FailureBoardPoseSeconds = 0.24f;
+        private const float FailureCellMaxDelaySeconds = 0.16f;
+        private const float ReviveCellMaxDelaySeconds = 0.22f;
+        private const float RetryCellMaxDelaySeconds = 0.16f;
 
         [SerializeField]
         private GameObject cellPrefab;
@@ -34,12 +44,24 @@ namespace Meowdoku
         [SerializeField]
         private TransformSpringComponent boardShakeSpring;
 
+        [SerializeField]
+        private CanvasGroup boardCanvasGroup;
+
         private readonly List<GridCell> cells = new List<GridCell>();
 
         private GridCell[,] cellGrid;
         private HashSet<Coord> tutorialAllowedCells;
         private HashSet<Coord> tutorialRequiredCells;
+        private Tween resultPoseTween;
+        private Vector3 boardRootRestScale = Vector3.one;
+        private bool boardRootRestScaleCaptured;
         private bool tutorialRestrictionActive;
+
+        private void Awake()
+        {
+            CaptureBoardRestScale();
+            ResolveBoardCanvasGroup();
+        }
 
         public void RebuildCells(PuzzleBoard board, BoardInputHandler inputHandler)
         {
@@ -47,6 +69,8 @@ namespace Meowdoku
             {
                 return;
             }
+
+            ResetResultPose();
 
             for (int i = boardRoot.childCount - 1; i >= 0; i--)
             {
@@ -86,6 +110,173 @@ namespace Meowdoku
             }
 
             return cellGrid[row, column];
+        }
+
+        public Tween PlayLevelCompleteTransition(PuzzleBoard board, Coord? origin)
+        {
+            if (board == null || boardRoot == null)
+            {
+                return null;
+            }
+
+            CanvasGroup group = ResolveBoardCanvasGroup();
+            KillResultPoseTween();
+            ResetBoardShakeSpringPosition();
+
+            Sequence sequence = DOTween.Sequence().SetUpdate(true);
+            sequence.Join(boardRoot.DOScale(boardRootRestScale * CompleteBoardScale, CompleteBoardPoseSeconds).SetEase(Ease.OutSine));
+            if (group != null)
+            {
+                sequence.Join(group.DOFade(CompleteBoardAlpha, CompleteBoardPoseSeconds).SetEase(Ease.OutSine));
+            }
+
+            float maxDistance = MaxDistanceFrom(board, origin);
+            foreach (GridCell cell in cells)
+            {
+                if (!board.IsActiveCell(cell.Row, cell.Column))
+                {
+                    continue;
+                }
+
+                float delay = StaggerDelay(cell.Row, cell.Column, origin, maxDistance, CompleteCellMaxDelaySeconds);
+                Tween pulse = cell.PlayCompletePulse(board.HasRevealedCat(cell.Row, cell.Column));
+                if (pulse != null)
+                {
+                    sequence.Insert(delay, pulse);
+                }
+            }
+
+            resultPoseTween = sequence;
+            sequence.OnComplete(() => resultPoseTween = null);
+            return sequence;
+        }
+
+        public Tween PlayLevelFailedTransition(PuzzleBoard board)
+        {
+            if (board == null || boardRoot == null)
+            {
+                return null;
+            }
+
+            CanvasGroup group = ResolveBoardCanvasGroup();
+            KillResultPoseTween();
+            ResetBoardShakeSpringPosition();
+
+            Sequence sequence = DOTween.Sequence().SetUpdate(true);
+            sequence.Join(boardRoot.DOScale(boardRootRestScale * FailureBoardScale, FailureBoardPoseSeconds).SetEase(Ease.OutSine));
+            if (group != null)
+            {
+                sequence.Join(group.DOFade(FailureBoardAlpha, FailureBoardPoseSeconds).SetEase(Ease.OutSine));
+            }
+
+            foreach (GridCell cell in cells)
+            {
+                if (!board.HasRevealedMiss(cell.Row, cell.Column))
+                {
+                    continue;
+                }
+
+                Tween pulse = cell.PlayFailurePulse();
+                if (pulse != null)
+                {
+                    sequence.Insert(Random.Range(0f, FailureCellMaxDelaySeconds), pulse);
+                }
+            }
+
+            resultPoseTween = sequence;
+            sequence.OnComplete(() => resultPoseTween = null);
+            return sequence;
+        }
+
+        public Tween PlayExtraLifeReviveTransition(PuzzleBoard board)
+        {
+            if (board == null || boardRoot == null)
+            {
+                return null;
+            }
+
+            CanvasGroup group = ResolveBoardCanvasGroup();
+            KillResultPoseTween();
+            ResetBoardShakeSpringPosition();
+
+            Sequence sequence = DOTween.Sequence().SetUpdate(true);
+            sequence.Join(boardRoot.DOScale(boardRootRestScale, CompleteBoardPoseSeconds).SetEase(Ease.OutSine));
+            if (group != null)
+            {
+                sequence.Join(group.DOFade(1f, CompleteBoardPoseSeconds).SetEase(Ease.OutSine));
+            }
+
+            Coord center = new Coord(board.Size / 2, board.Size / 2);
+            float maxDistance = MaxDistanceFrom(board, center);
+            foreach (GridCell cell in cells)
+            {
+                if (!board.IsRevealed(cell.Row, cell.Column))
+                {
+                    continue;
+                }
+
+                float delay = StaggerDelay(cell.Row, cell.Column, center, maxDistance, ReviveCellMaxDelaySeconds);
+                Tween pulse = cell.PlayRevivePulse();
+                if (pulse != null)
+                {
+                    sequence.Insert(delay, pulse);
+                }
+            }
+
+            resultPoseTween = sequence;
+            sequence.OnComplete(() => resultPoseTween = null);
+            return sequence;
+        }
+
+        public Tween PlayRetryClearTransition(PuzzleBoard board)
+        {
+            if (board == null)
+            {
+                return null;
+            }
+
+            KillResultPoseTween();
+
+            Sequence sequence = DOTween.Sequence().SetUpdate(true);
+            foreach (GridCell cell in cells)
+            {
+                if (!board.IsActiveCell(cell.Row, cell.Column))
+                {
+                    continue;
+                }
+
+                float normalizedRow = board.Size > 1 ? (float)cell.Row / (board.Size - 1) : 0f;
+                Tween clear = cell.PlayRetryClear();
+                if (clear != null)
+                {
+                    sequence.Insert(normalizedRow * RetryCellMaxDelaySeconds, clear);
+                }
+            }
+
+            resultPoseTween = sequence;
+            sequence.OnComplete(() => resultPoseTween = null);
+            return sequence;
+        }
+
+        public void ResetResultPose()
+        {
+            CaptureBoardRestScale();
+            KillResultPoseTween();
+            ResetBoardShakeSpringPosition();
+
+            if (boardRoot != null)
+            {
+                boardRoot.DOKill();
+                boardRoot.localScale = boardRootRestScale;
+            }
+
+            CanvasGroup group = ResolveBoardCanvasGroup();
+            if (group != null)
+            {
+                group.DOKill();
+                group.alpha = 1f;
+                group.blocksRaycasts = true;
+            }
         }
 
         // ---- powerup hint (fade-pulse highlight, same GridCell hint API the tutorial's guide uses) ----
@@ -318,6 +509,8 @@ namespace Meowdoku
         /// <summary>Cancels all board-owned animations and snaps everything back to rest. Call around level load/restart/undo.</summary>
         public void StopAllJuice()
         {
+            ResetResultPose();
+
             if (boardShakeSpring != null)
             {
                 boardShakeSpring.ReachEquilibriumPosition();
@@ -327,6 +520,98 @@ namespace Meowdoku
             {
                 cell.StopJuice();
             }
+        }
+
+        private CanvasGroup ResolveBoardCanvasGroup()
+        {
+            if (boardCanvasGroup != null || boardRoot == null)
+            {
+                return boardCanvasGroup;
+            }
+
+            if (!boardRoot.TryGetComponent(out boardCanvasGroup))
+            {
+                boardCanvasGroup = boardRoot.gameObject.AddComponent<CanvasGroup>();
+            }
+
+            return boardCanvasGroup;
+        }
+
+        private void CaptureBoardRestScale()
+        {
+            if (boardRoot == null || boardRootRestScaleCaptured)
+            {
+                return;
+            }
+
+            boardRootRestScale = boardRoot.localScale;
+            boardRootRestScaleCaptured = true;
+        }
+
+        private void KillResultPoseTween()
+        {
+            resultPoseTween?.Kill();
+            resultPoseTween = null;
+
+            if (boardRoot != null)
+            {
+                boardRoot.DOKill();
+            }
+
+            if (boardCanvasGroup != null)
+            {
+                boardCanvasGroup.DOKill();
+            }
+        }
+
+        private void ResetBoardShakeSpringPosition()
+        {
+            if (boardShakeSpring == null)
+            {
+                return;
+            }
+
+            boardShakeSpring.ReachEquilibriumPosition();
+        }
+
+        private static float MaxDistanceFrom(PuzzleBoard board, Coord? origin)
+        {
+            if (board == null || !origin.HasValue)
+            {
+                return 0f;
+            }
+
+            float maxDistance = 0f;
+            Coord pivot = origin.Value;
+            for (int row = 0; row < board.Size; row++)
+            {
+                for (int column = 0; column < board.Size; column++)
+                {
+                    if (!board.IsActiveCell(row, column))
+                    {
+                        continue;
+                    }
+
+                    maxDistance = Mathf.Max(maxDistance, Distance(row, column, pivot));
+                }
+            }
+
+            return maxDistance;
+        }
+
+        private static float StaggerDelay(int row, int column, Coord? origin, float maxDistance, float maxDelay)
+        {
+            if (!origin.HasValue || maxDistance <= 0f || maxDelay <= 0f)
+            {
+                return 0f;
+            }
+
+            return Mathf.Clamp01(Distance(row, column, origin.Value) / maxDistance) * maxDelay;
+        }
+
+        private static float Distance(int row, int column, Coord pivot)
+        {
+            return Mathf.Abs(row - pivot.Row) + Mathf.Abs(column - pivot.Column);
         }
     }
 }

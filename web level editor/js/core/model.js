@@ -1,14 +1,16 @@
-// Mirror of Assets/_GameData/Systems/Scripts/Meowdoku/Levels/LevelData.cs.
+// Mirror of Assets/_GameData/Systems/Scripts/Levels/LevelData.cs.
 // The JSON produced here must stay byte-compatible with Unity's JsonUtility
 // output (4-space indent, field order: formatVersion, id, title, size,
-// regions, cats / row, column, letter, locked).
+// regions, cats / row, column, locked). Cats no longer carry a "letter" -
+// the word-spelling HUD was removed from the game (see GameplayScreen /
+// CatCounter), and LevelCatData dropped the field to match.
 
 export const CURRENT_FORMAT_VERSION = 1;
 export const MIN_SIZE = 3;
 export const MAX_SIZE = 9;
 
 /**
- * @typedef {{ row: number, column: number, letter: string, locked: boolean }} Cat
+ * @typedef {{ row: number, column: number, locked: boolean }} Cat
  * @typedef {{ formatVersion: number, id: string, title: string, size: number, regions: string[], cats: Cat[] }} LevelData
  */
 
@@ -62,7 +64,6 @@ export function parseLevelJson(text) {
         return {
             row: Number(cat.row),
             column: Number(cat.column),
-            letter: String(cat.letter ?? "").toUpperCase(),
             locked: Boolean(cat.locked),
         };
     });
@@ -88,16 +89,10 @@ export function serializeLevel(level) {
         cats: level.cats.map((cat) => ({
             row: cat.row,
             column: cat.column,
-            letter: cat.letter,
             locked: cat.locked,
         })),
     };
     return JSON.stringify(ordered, null, 4);
-}
-
-/** The word the level spells, derived from cat order (may contain gaps while editing). */
-export function targetWord(level) {
-    return level.cats.map((cat) => cat.letter || "?").join("");
 }
 
 export function regionAt(level, row, column) {

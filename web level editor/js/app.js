@@ -11,7 +11,7 @@ import {
     countLegalSolutions,
     findUniqueSolutionColumns,
 } from "./core/validator.js";
-import { generateLevel } from "./core/generator.js";
+import { generateLevelWithRegionSizes, defaultRegionSizes, defaultLockedCatCount } from "./core/generator.js";
 
 // Region colors mirror NekoGameController.RegionColors so painted boards read
 // the same here and in the game.
@@ -23,33 +23,52 @@ const REGION_COLORS = [
 const INTRO_DIAGONAL_DELAY_MS = 45; // Matches the game's diagonal pop-in sweep.
 
 const state = {
+    /** The level's title is no longer a directly-editable field - it comes from
+     *  whichever of the two title sources last ran: the generator's own nice
+     *  adjective+noun title after a Generate, or titleFromId() derived from the
+     *  Id field for hand-painted levels (see titleFromId). */
     title: "New Level",
     id: "",
     size: 5,
-    word: "",
     regions: [],
-    /** @type {({row: number, column: number, locked: boolean} | null)[]} one entry per letter */
+    /** @type {({row: number, column: number, locked: boolean} | null)[]} one entry per cat */
     placements: [],
+    /** One cell-count target per color, edited in the Generate panel; must sum to size*size. */
+    regionSizes: [],
+    /** Pre-generate config: which cats (by index) should start revealed. Fully
+     *  explicit - an unchecked box means "not locked", generate is never told
+     *  to silently pick its own default the way it does when this option is
+     *  omitted entirely (see generateLevelWithRegionSizes's lockedRows). */
+    lockedCats: [],
+    /** The count shown in the "Randomize" field - only consulted when that
+     *  button is clicked, never implicitly. */
+    lockRandomizeCount: 0,
     mode: "regions",
     selectedRegion: 0,
-    selectedLetter: 0,
+    selectedCat: 0,
 };
 
 const el = {
     themeSwitch: document.getElementById("theme-switch"),
-    title: document.getElementById("title-input"),
     id: document.getElementById("id-input"),
     size: document.getElementById("size-input"),
     sizeValue: document.getElementById("size-value"),
-    word: document.getElementById("word-input"),
     seed: document.getElementById("seed-input"),
     randomSeedBtn: document.getElementById("random-seed-btn"),
+    colorCountList: document.getElementById("color-count-list"),
+    cellTotalRow: document.getElementById("cell-total-row"),
+    evenSplitBtn: document.getElementById("even-split-btn"),
+    lockCatList: document.getElementById("lock-cat-list"),
+    lockCountInput: document.getElementById("lock-count-input"),
+    randomizeLocksBtn: document.getElementById("randomize-locks-btn"),
+    generateInfoBtn: document.getElementById("generate-info-btn"),
+    generateInfoPopover: document.getElementById("generate-info-popover"),
     generateBtn: document.getElementById("generate-btn"),
     modeToolbar: document.getElementById("mode-toolbar"),
     regionsControls: document.getElementById("regions-controls"),
     catsControls: document.getElementById("cats-controls"),
     swatchRow: document.getElementById("swatch-row"),
-    letterRow: document.getElementById("letter-row"),
+    catRow: document.getElementById("cat-row"),
     lockedToggle: document.getElementById("locked-toggle"),
     board: document.getElementById("board"),
     statusRow: document.getElementById("status-row"),
@@ -70,11 +89,13 @@ function resetLevel(size) {
     state.title = "New Level";
     state.id = "";
     state.size = size;
-    state.word = "";
     state.regions = Array.from({ length: size }, () => "0".repeat(size));
     state.placements = new Array(size).fill(null);
+    state.regionSizes = defaultRegionSizes(size);
+    state.lockedCats = new Array(size).fill(false);
+    state.lockRandomizeCount = defaultLockedCatCount(size);
     state.selectedRegion = 0;
-    state.selectedLetter = 0;
+    state.selectedCat = 0;
 }
 
 function setSize(newSize) {
@@ -95,9 +116,22 @@ function setSize(newSize) {
 
     state.placements = placements;
     state.size = newSize;
-    state.word = state.word.slice(0, newSize);
+    // A different board size invalidates any custom split, so start fresh
+    // from an even one rather than trying to rescale it.
+    state.regionSizes = defaultRegionSizes(newSize);
+    // Same for the locked-cat picker - old picks may no longer be valid indices.
+    state.lockedCats = new Array(newSize).fill(false);
+    state.lockRandomizeCount = defaultLockedCatCount(newSize);
     state.selectedRegion = Math.min(state.selectedRegion, newSize - 1);
-    state.selectedLetter = Math.min(state.selectedLetter, newSize - 1);
+    state.selectedCat = Math.min(state.selectedCat, newSize - 1);
+}
+
+/** Derives a human-readable title from the Id field - the only title source
+ *  for hand-painted levels now that there's no separate Title input (see
+ *  state.title's comment). "porch-patrol" -> "Porch Patrol". */
+function titleFromId(id) {
+    const words = id.trim().split(/[-_\s]+/).filter(Boolean);
+    return words.length === 0 ? "New Level" : words.map((word) => word[0].toUpperCase() + word.slice(1)).join(" ");
 }
 
 function setRegion(row, column, region) {
@@ -110,24 +144,35 @@ function placementIndexAt(row, column) {
     return state.placements.findIndex((p) => p !== null && p.row === row && p.column === column);
 }
 
+/** Actual per-region cell counts on the current board (used to seed the Generate panel after a load). */
+function regionSizesFromState() {
+    const counts = new Array(state.size).fill(0);
+    for (const row of state.regions) {
+        for (const digit of row) {
+            const region = Number(digit);
+            if (region >= 0 && region < state.size) {
+                counts[region]++;
+            }
+        }
+    }
+
+    return counts;
+}
+
 /** Builds a game-format LevelData, or reports why one can't be built yet. */
 function tryBuildLevel() {
     if (state.title.trim() === "") {
         return { error: "Title is required." };
     }
 
-    if (state.word.length !== state.size) {
-        return { error: `Target word must be exactly ${state.size} letters.` };
-    }
-
     const cats = [];
     for (let i = 0; i < state.size; i++) {
         const p = state.placements[i];
         if (p === null) {
-            return { error: `Letter ${i + 1} ('${state.word[i]}') has no cat placed yet.` };
+            return { error: `Cat ${i + 1} has no location yet.` };
         }
 
-        cats.push({ row: p.row, column: p.column, letter: state.word[i], locked: p.locked });
+        cats.push({ row: p.row, column: p.column, locked: p.locked });
     }
 
     return {
@@ -152,13 +197,18 @@ function applyLevelData(level) {
     state.id = level.id;
     state.size = level.size;
     state.regions = level.regions.map((row) => (row + "0".repeat(level.size)).slice(0, level.size));
-    state.word = level.cats.map((cat) => cat.letter).join("").slice(0, level.size);
     state.placements = Array.from({ length: level.size }, (_, i) => {
         const cat = level.cats[i];
         return cat ? { row: cat.row, column: cat.column, locked: cat.locked } : null;
     });
+    state.regionSizes = regionSizesFromState();
+    // Echoes back whichever cats actually ended up locked (from Generate's
+    // explicit lockedRows, or whatever an imported file already had) so the
+    // picker always reflects the board that's actually loaded.
+    state.lockedCats = Array.from({ length: level.size }, (_, i) => level.cats[i]?.locked ?? false);
+    state.lockRandomizeCount = state.lockedCats.filter(Boolean).length || defaultLockedCatCount(level.size);
     state.selectedRegion = 0;
-    state.selectedLetter = 0;
+    state.selectedCat = 0;
     pendingIntro = true;
     renderAll();
 }
@@ -166,12 +216,9 @@ function applyLevelData(level) {
 // ---------- rendering ----------
 
 function renderAll() {
-    el.title.value = state.title;
     el.id.value = state.id;
     el.size.value = String(state.size);
     el.sizeValue.textContent = `${state.size}×${state.size}`;
-    el.word.value = state.word;
-    el.word.maxLength = state.size;
 
     for (const button of el.modeToolbar.querySelectorAll("button")) {
         button.classList.toggle("active", button.dataset.mode === state.mode);
@@ -181,7 +228,9 @@ function renderAll() {
     el.catsControls.hidden = state.mode !== "cats";
 
     renderSwatches();
-    renderLetterRow();
+    renderCatRow();
+    renderColorCounts();
+    renderLockCatList();
     renderBoard();
     renderValidation();
 }
@@ -202,15 +251,15 @@ function renderSwatches() {
     }
 }
 
-function renderLetterRow() {
-    el.letterRow.replaceChildren();
+function renderCatRow() {
+    el.catRow.replaceChildren();
     for (let i = 0; i < state.size; i++) {
         const slot = document.createElement("button");
-        slot.className = "letter-slot"
-            + (state.selectedLetter === i ? " active" : "")
+        slot.className = "cat-slot"
+            + (state.selectedCat === i ? " active" : "")
             + (state.placements[i] !== null ? " placed" : "");
-        slot.textContent = state.word[i] ?? "?";
-        slot.title = `Letter ${i + 1}`;
+        slot.textContent = String(i + 1);
+        slot.title = `Cat ${i + 1}`;
         if (state.placements[i]?.locked) {
             const dot = document.createElement("span");
             dot.className = "lock-dot";
@@ -218,14 +267,101 @@ function renderLetterRow() {
         }
 
         slot.addEventListener("click", () => {
-            state.selectedLetter = i;
+            state.selectedCat = i;
             renderAll();
         });
-        el.letterRow.append(slot);
+        el.catRow.append(slot);
     }
 
-    el.lockedToggle.checked = state.placements[state.selectedLetter]?.locked ?? false;
-    el.lockedToggle.disabled = state.placements[state.selectedLetter] === null;
+    el.lockedToggle.checked = state.placements[state.selectedCat]?.locked ?? false;
+    el.lockedToggle.disabled = state.placements[state.selectedCat] === null;
+}
+
+/** The Generate panel's per-color cell-count editor - defaults to an even split, user-editable.
+ *  Each row also gets a Normalize button: press it after hand-editing some
+ *  other row throws the total off, and it dumps the entire current gap onto
+ *  THAT row, leaving every other row (including whichever one you just
+ *  edited) untouched. */
+function renderColorCounts() {
+    el.colorCountList.replaceChildren();
+    for (let region = 0; region < state.size; region++) {
+        const row = document.createElement("div");
+        row.className = "color-count-row";
+
+        const swatch = document.createElement("span");
+        swatch.className = "swatch small";
+        swatch.style.background = REGION_COLORS[region % REGION_COLORS.length];
+
+        const input = document.createElement("input");
+        input.type = "number";
+        input.min = "1";
+        input.max = String(state.size * state.size);
+        input.value = String(state.regionSizes[region] ?? 1);
+        input.addEventListener("input", () => {
+            const parsed = Math.floor(Number(input.value));
+            state.regionSizes[region] = Number.isFinite(parsed) && parsed >= 1 ? parsed : 1;
+            renderCellTotal();
+        });
+
+        const normalizeBtn = document.createElement("button");
+        normalizeBtn.type = "button";
+        normalizeBtn.className = "btn small normalize-btn";
+        normalizeBtn.textContent = "Normalize";
+        normalizeBtn.title = "Add the current gap to this color's count so the total matches the board again";
+        normalizeBtn.addEventListener("click", () => {
+            const target = state.size * state.size;
+            const total = state.regionSizes.reduce((sum, count) => sum + count, 0);
+            const deficit = target - total;
+            state.regionSizes[region] = Math.max(1, state.regionSizes[region] + deficit);
+            renderColorCounts();
+        });
+
+        row.append(swatch, input, normalizeBtn);
+        el.colorCountList.append(row);
+    }
+
+    renderCellTotal();
+}
+
+function renderCellTotal() {
+    const total = state.regionSizes.reduce((sum, count) => sum + count, 0);
+    const target = state.size * state.size;
+    const mismatched = total !== target;
+    el.cellTotalRow.textContent = `${total} / ${target} cells`;
+    el.cellTotalRow.classList.toggle("ok", !mismatched);
+    el.cellTotalRow.classList.toggle("danger", mismatched);
+    el.generateBtn.disabled = mismatched;
+    el.generateBtn.title = mismatched
+        ? `Color cell counts must add up to exactly ${target} (currently ${total}) before you can generate - edit a row or press its Normalize button.`
+        : "";
+}
+
+/** Pre-generate locked-cat picker: one checkbox per cat (explicit, fully
+ *  user-controlled) plus a count + Randomize button that checks that many
+ *  random boxes for you. Nothing here is implicit - whatever's checked when
+ *  Generate is pressed is exactly what gets passed as lockedRows. */
+function renderLockCatList() {
+    el.lockCatList.replaceChildren();
+    for (let i = 0; i < state.size; i++) {
+        const label = document.createElement("label");
+        label.className = "lock-cat-item";
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = state.lockedCats[i] ?? false;
+        checkbox.addEventListener("change", () => {
+            state.lockedCats[i] = checkbox.checked;
+        });
+
+        const number = document.createElement("span");
+        number.textContent = String(i + 1);
+
+        label.append(checkbox, number);
+        el.lockCatList.append(label);
+    }
+
+    el.lockCountInput.value = String(state.lockRandomizeCount);
+    el.lockCountInput.max = String(state.size);
 }
 
 // The board rebuilds (with the pop-in sweep) only on structural changes -
@@ -256,16 +392,49 @@ function renderBoard() {
     }
 }
 
-function rebuildBoard() {
-    builtBoardSize = state.size;
-    const cellSize = Math.min(56, Math.floor(470 / state.size));
+// The board's own box size is driven entirely by CSS (.board { width: min(...,
+// 100%); aspect-ratio: 1/1 }), independent of grid-template-columns - growing
+// the grid to 9x9 shrinks the cells to fit that same box rather than growing
+// the box. updateBoardSizing() reads the box's resolved width and divides it
+// into state.size cells (accounting for the fixed gap), so the container
+// truly never grows with N, on any viewport.
+const BOARD_GAP_PX = 5;
+const MIN_CELL_PX = 18;
+
+function updateBoardSizing() {
+    const containerWidth = el.board.clientWidth || 480;
+    const cellSize = Math.max(MIN_CELL_PX, Math.floor((containerWidth - (state.size - 1) * BOARD_GAP_PX) / state.size));
     el.board.style.gridTemplateColumns = `repeat(${state.size}, ${cellSize}px)`;
     el.board.style.setProperty("--cell-size", `${cellSize}px`);
+}
+
+let resizeFrame = null;
+window.addEventListener("resize", () => {
+    if (resizeFrame !== null) {
+        return;
+    }
+
+    resizeFrame = requestAnimationFrame(() => {
+        resizeFrame = null;
+        // A resize never changes cell content/count, just their size - re-measure
+        // and re-apply the grid math without rebuilding cells (that would replay
+        // the intro pop-in and drop any in-flight juice animations).
+        updateBoardSizing();
+    });
+});
+
+function rebuildBoard() {
+    builtBoardSize = state.size;
+    updateBoardSizing();
     el.board.replaceChildren();
     boardCells = [];
 
     for (let row = 0; row < state.size; row++) {
         const rowCells = [];
+        // Pushed before the column loop (not after) - applyCellVisual below reads
+        // boardCells[row][column] via boardCells, so it needs to already resolve
+        // to this row's (still-filling) array, not find the row missing and no-op.
+        boardCells.push(rowCells);
         for (let column = 0; column < state.size; column++) {
             const cell = document.createElement("button");
             cell.className = "cell intro";
@@ -285,8 +454,6 @@ function rebuildBoard() {
             rowCells.push(cell);
             applyCellVisual(row, column);
         }
-
-        boardCells.push(rowCells);
     }
 }
 
@@ -300,10 +467,10 @@ function applyCellVisual(row, column) {
     cell.style.background = REGION_COLORS[region % REGION_COLORS.length];
 
     const catIndex = placementIndexAt(row, column);
-    cell.textContent = catIndex >= 0 ? state.word[catIndex] ?? "?" : "";
+    cell.textContent = catIndex >= 0 ? String(catIndex + 1) : "";
     cell.classList.toggle(
-        "selected-letter",
-        state.mode === "cats" && catIndex >= 0 && catIndex === state.selectedLetter
+        "selected-cat",
+        state.mode === "cats" && catIndex >= 0 && catIndex === state.selectedCat
     );
 
     if (catIndex >= 0 && state.placements[catIndex].locked) {
@@ -374,7 +541,12 @@ function renderValidation() {
         el.issueList.append(item);
     }
 
-    el.autoPlaceBtn.disabled = solutions !== 1 || state.word.length !== state.size;
+    el.autoPlaceBtn.disabled = solutions !== 1;
+    el.autoPlaceBtn.title = solutions === 1
+        ? "Place all cats at the unique solution"
+        : solutions === 0
+            ? "Auto-place needs a region layout with a legal solution first - this one has none yet."
+            : "Auto-place needs exactly one legal solution first - this layout currently has 2+; keep painting until only one remains.";
     if (document.activeElement !== el.jsonArea) {
         el.jsonArea.value = built.level && issues.length === 0 ? serializeLevel(built.level) : "";
     }
@@ -439,18 +611,18 @@ el.board.addEventListener("pointercancel", () => {
 function onCatCellClicked(row, column) {
     const existing = placementIndexAt(row, column);
     let placed = false;
-    if (existing >= 0 && existing !== state.selectedLetter) {
-        // Clicking someone else's cat selects that letter instead of stacking.
-        state.selectedLetter = existing;
-    } else if (existing === state.selectedLetter) {
-        state.placements[state.selectedLetter] = null;
+    if (existing >= 0 && existing !== state.selectedCat) {
+        // Clicking someone else's cat selects that cat instead of stacking.
+        state.selectedCat = existing;
+    } else if (existing === state.selectedCat) {
+        state.placements[state.selectedCat] = null;
     } else {
-        const locked = state.placements[state.selectedLetter]?.locked ?? false;
-        state.placements[state.selectedLetter] = { row, column, locked };
+        const locked = state.placements[state.selectedCat]?.locked ?? false;
+        state.placements[state.selectedCat] = { row, column, locked };
         placed = true;
         const next = state.placements.findIndex((p) => p === null);
         if (next >= 0) {
-            state.selectedLetter = next;
+            state.selectedCat = next;
         }
     }
 
@@ -462,24 +634,15 @@ function onCatCellClicked(row, column) {
 
 // ---------- form events ----------
 
-el.title.addEventListener("input", () => {
-    state.title = el.title.value;
-    renderValidation();
-});
-
 el.id.addEventListener("input", () => {
     state.id = el.id.value;
+    // The only title source for a hand-painted level - see state.title's comment.
+    state.title = titleFromId(state.id);
     renderValidation();
 });
 
 el.size.addEventListener("input", () => {
     setSize(Number(el.size.value));
-    renderAll();
-});
-
-el.word.addEventListener("input", () => {
-    const clean = el.word.value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, state.size);
-    state.word = clean;
     renderAll();
 });
 
@@ -492,7 +655,7 @@ el.modeToolbar.addEventListener("click", (event) => {
 });
 
 el.lockedToggle.addEventListener("change", () => {
-    const placement = state.placements[state.selectedLetter];
+    const placement = state.placements[state.selectedCat];
     if (placement) {
         placement.locked = el.lockedToggle.checked;
         renderAll();
@@ -522,8 +685,57 @@ function randomSeed() {
     return Math.random().toString(36).slice(2, 8);
 }
 
+/** Fisher-Yates shuffle of [0, count) - used by the Randomize locked-cats button. */
+function shuffledIndices(count) {
+    const indices = Array.from({ length: count }, (_, i) => i);
+    for (let i = indices.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [indices[i], indices[j]] = [indices[j], indices[i]];
+    }
+
+    return indices;
+}
+
 el.randomSeedBtn.addEventListener("click", () => {
     el.seed.value = randomSeed();
+});
+
+el.evenSplitBtn.addEventListener("click", () => {
+    state.regionSizes = defaultRegionSizes(state.size);
+    renderColorCounts();
+});
+
+// Info popover: the Generate panel's hint text lives here instead of as
+// permanent on-page paragraphs, toggled by the "i" button next to the
+// Generate button. Closes on a second click, an outside click, or Escape.
+el.generateInfoBtn.addEventListener("click", (event) => {
+    event.stopPropagation();
+    el.generateInfoPopover.hidden = !el.generateInfoPopover.hidden;
+});
+
+document.addEventListener("click", (event) => {
+    if (!el.generateInfoPopover.hidden && !el.generateInfoPopover.contains(event.target) && event.target !== el.generateInfoBtn) {
+        el.generateInfoPopover.hidden = true;
+    }
+});
+
+document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && !el.generateInfoPopover.hidden) {
+        el.generateInfoPopover.hidden = true;
+    }
+});
+
+el.lockCountInput.addEventListener("input", () => {
+    const parsed = Math.floor(Number(el.lockCountInput.value));
+    state.lockRandomizeCount = Number.isFinite(parsed) ? Math.max(0, Math.min(state.size, parsed)) : 0;
+});
+
+el.randomizeLocksBtn.addEventListener("click", () => {
+    const count = state.lockRandomizeCount;
+    const indices = shuffledIndices(state.size);
+    const chosen = new Set(indices.slice(0, count));
+    state.lockedCats = Array.from({ length: state.size }, (_, i) => chosen.has(i));
+    renderLockCatList();
 });
 
 el.generateBtn.addEventListener("click", () => {
@@ -533,8 +745,12 @@ el.generateBtn.addEventListener("click", () => {
         el.seed.value = seed;
     }
 
+    const lockedRows = state.lockedCats
+        .map((locked, index) => (locked ? index : -1))
+        .filter((index) => index >= 0);
+
     try {
-        applyLevelData(generateLevel(seed, state.size));
+        applyLevelData(generateLevelWithRegionSizes(seed, state.size, state.regionSizes.slice(), { lockedRows }));
     } catch (error) {
         alert(error.message);
     }

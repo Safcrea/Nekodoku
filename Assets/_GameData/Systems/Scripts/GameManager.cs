@@ -1,3 +1,5 @@
+using System.Collections;
+using DG.Tweening;
 using UnityEngine;
 #if USE_AVNADS_PLUGIN
 using AVN.AdsPlugin.Controllers;
@@ -20,6 +22,8 @@ namespace Meowdoku
     [RequireComponent(typeof(BoardInputHandler))]
     public sealed class GameManager : MonoBehaviour
     {
+        private const float LevelFailedPopupDelaySeconds = 0.2f;
+
         [SerializeField]
         private LevelDatabase levelDatabase;
 
@@ -40,6 +44,10 @@ namespace Meowdoku
         private int levelIndex;
         private bool isLessonBoardLoaded;
         private bool hintActive;
+        private Coord? pendingResultOrigin;
+        private bool completeTransitionPlayed;
+        private bool failedTransitionPlayed;
+        private Coroutine resultTransitionRoutine;
 #if USE_AVNADS_PLUGIN
         private bool levelCompleteReported;
         private bool levelFailedReported;
@@ -61,7 +69,7 @@ namespace Meowdoku
         {
             inputHandler.Initialize(this, boardView, gameplayScreen);
             levelCompleteScreen.NextRequested += NextLevel;
-            levelFailedScreen.RetryRequested += RestartLevel;
+            levelFailedScreen.RetryRequested += OnRetryRequested;
             levelFailedScreen.ExtraLifeRequested += OnExtraLifeRequested;
             powerupBar.RevealCatRequested += OnRevealCatRequested;
             powerupBar.HintRequested += OnHintRequested;
@@ -81,6 +89,7 @@ namespace Meowdoku
 
         private void BeginTutorialLesson()
         {
+            CancelResultTransitionState();
             inputHandler.CancelCatReveal();
             levelCompleteScreen.Hide();
             levelFailedScreen.Hide();
@@ -139,9 +148,19 @@ namespace Meowdoku
             }
 
             inputHandler.CancelCatReveal();
+            CancelResultTransitionState();
             boardView.StopAllJuice();
             NekoUndoStack.Apply(board, snapshot);
             Refresh();
+        }
+
+        public void NotifyCatRevealCompleted(Coord coord)
+        {
+            pendingResultOrigin = coord;
+            if (isLessonBoardLoaded && tutorialLessonController != null)
+            {
+                tutorialLessonController.OnCatRevealCompleted(coord);
+            }
         }
 
         /// <summary>The big per-action sync: HUD, hearts, board visuals, tutorial, win/fail screens.</summary>
@@ -174,42 +193,110 @@ namespace Meowdoku
             bool powerupBarActive = !isLessonBoardLoaded && !validation.IsFailed && !validation.IsSolved;
             powerupBar.Refresh(powerupManager.RevealCatUsesRemaining, powerupManager.HintUsesRemaining, powerupBarActive);
 
-            bool shouldShowWin = validation.IsSolved && !inputHandler.InputLocked;
-            if (shouldShowWin)
+            if (validation.IsSolved)
             {
-#if USE_AVNADS_PLUGIN
-                if (!levelCompleteReported)
+                if (!completeTransitionPlayed && resultTransitionRoutine == null)
                 {
-                    levelCompleteReported = true;
-                    GameAnalyticsEvents.CustomLevelAnalysis(AnalyticsLevelNumber, LevelState.Completed, LevelMode.DEFAULT);
+                    resultTransitionRoutine = StartCoroutine(RunLevelCompleteTransition(validation, pendingResultOrigin));
                 }
-#endif
-                levelCompleteScreen.ShowWinAnimation(board.Level, validation);
+                else if (completeTransitionPlayed)
+                {
+                    levelCompleteScreen.ShowWinAnimation(board.Level, validation);
+                }
             }
             else
             {
-                levelCompleteScreen.Hide();
+                completeTransitionPlayed = false;
+                pendingResultOrigin = null;
+                if (resultTransitionRoutine == null)
+                {
+                    levelCompleteScreen.Hide();
+                }
             }
 
-            bool shouldShowFailed = validation.IsFailed && !inputHandler.InputLocked;
-            if (shouldShowFailed)
+            if (validation.IsFailed)
             {
-#if USE_AVNADS_PLUGIN
-                if (!levelFailedReported)
+                if (!failedTransitionPlayed && resultTransitionRoutine == null)
                 {
-                    levelFailedReported = true;
-                    GameAnalyticsEvents.CustomLevelAnalysis(AnalyticsLevelNumber, LevelState.Failed, LevelMode.DEFAULT);
+                    resultTransitionRoutine = StartCoroutine(RunLevelFailedTransition(!board.HasClaimedExtraLife));
                 }
-#endif
-                levelFailedScreen.ShowFailAnimation(!board.HasClaimedExtraLife);
+                else if (failedTransitionPlayed)
+                {
+                    levelFailedScreen.ShowFailAnimation(!board.HasClaimedExtraLife);
+                }
             }
             else
             {
+                failedTransitionPlayed = false;
+                if (resultTransitionRoutine == null)
+                {
+                    levelFailedScreen.Hide();
+                }
 #if USE_AVNADS_PLUGIN
                 levelFailedReported = false;
 #endif
-                levelFailedScreen.Hide();
             }
+        }
+
+        private IEnumerator RunLevelCompleteTransition(ValidationResult validation, Coord? origin)
+        {
+            inputHandler.SetResultLocked(true);
+            ReportLevelCompleteIfNeeded();
+
+            Tween boardTween = boardView.PlayLevelCompleteTransition(board, origin);
+            levelCompleteScreen.ShowWinAnimation(board.Level, validation);
+            if (boardTween != null)
+            {
+                yield return boardTween.WaitForCompletion(true);
+            }
+
+            completeTransitionPlayed = true;
+            resultTransitionRoutine = null;
+            boardView.RefreshVisuals(board, inputHandler.InputLocked);
+        }
+
+        private IEnumerator RunLevelFailedTransition(bool extraLifeAvailable)
+        {
+            inputHandler.SetResultLocked(true);
+            ReportLevelFailedIfNeeded();
+
+            Tween boardTween = boardView.PlayLevelFailedTransition(board);
+            yield return new WaitForSecondsRealtime(LevelFailedPopupDelaySeconds);
+            levelFailedScreen.ShowFailAnimation(extraLifeAvailable);
+            if (boardTween != null)
+            {
+                yield return boardTween.WaitForCompletion(true);
+            }
+
+            failedTransitionPlayed = true;
+            resultTransitionRoutine = null;
+            boardView.RefreshVisuals(board, inputHandler.InputLocked);
+        }
+
+        private void ReportLevelCompleteIfNeeded()
+        {
+#if USE_AVNADS_PLUGIN
+            if (levelCompleteReported)
+            {
+                return;
+            }
+
+            levelCompleteReported = true;
+            GameAnalyticsEvents.CustomLevelAnalysis(AnalyticsLevelNumber, LevelState.Completed, LevelMode.DEFAULT);
+#endif
+        }
+
+        private void ReportLevelFailedIfNeeded()
+        {
+#if USE_AVNADS_PLUGIN
+            if (levelFailedReported)
+            {
+                return;
+            }
+
+            levelFailedReported = true;
+            GameAnalyticsEvents.CustomLevelAnalysis(AnalyticsLevelNumber, LevelState.Failed, LevelMode.DEFAULT);
+#endif
         }
 
         public void ResetCrosses()
@@ -224,6 +311,7 @@ namespace Meowdoku
                 return;
             }
 
+            CancelResultTransitionState();
             inputHandler.CancelCatReveal();
             boardView.StopIntro(inputHandler.InputLocked);
             boardView.StopAllJuice();
@@ -246,6 +334,24 @@ namespace Meowdoku
             Refresh();
             boardView.PlayIntro(inputHandler.InputLocked);
             gameplayScreen.PlayIntro();
+        }
+
+        private void CancelResultTransitionState()
+        {
+            if (resultTransitionRoutine != null)
+            {
+                StopCoroutine(resultTransitionRoutine);
+                resultTransitionRoutine = null;
+            }
+
+            completeTransitionPlayed = false;
+            failedTransitionPlayed = false;
+            pendingResultOrigin = null;
+
+            if (inputHandler != null)
+            {
+                inputHandler.SetResultLocked(false);
+            }
         }
 
         private void PreviousLevel()
@@ -275,7 +381,40 @@ namespace Meowdoku
             LoadLevel((levelIndex + 1) % levels.Length);
         }
 
-        private void RestartLevel()
+        private void OnRetryRequested()
+        {
+            if (board == null || resultTransitionRoutine != null)
+            {
+                return;
+            }
+
+            resultTransitionRoutine = StartCoroutine(RunRetryTransition());
+        }
+
+        private IEnumerator RunRetryTransition()
+        {
+            inputHandler.CancelCatReveal();
+            inputHandler.SetResultLocked(true);
+            levelFailedScreen.SetButtonsInteractable(false);
+
+            Tween hideTween = levelFailedScreen.HideForTransition();
+            Tween clearTween = boardView.PlayRetryClearTransition(board);
+
+            if (hideTween != null)
+            {
+                yield return hideTween.WaitForCompletion(true);
+            }
+
+            if (clearTween != null)
+            {
+                yield return clearTween.WaitForCompletion(true);
+            }
+
+            resultTransitionRoutine = null;
+            RestartLevel(false);
+        }
+
+        private void RestartLevel(bool snapBoardJuice = true)
         {
             if (board == null)
             {
@@ -283,7 +422,20 @@ namespace Meowdoku
             }
 
             inputHandler.CancelCatReveal();
-            boardView.StopAllJuice();
+            inputHandler.SetResultLocked(false);
+            completeTransitionPlayed = false;
+            failedTransitionPlayed = false;
+            pendingResultOrigin = null;
+
+            if (snapBoardJuice)
+            {
+                boardView.StopAllJuice();
+            }
+            else
+            {
+                boardView.ResetResultPose();
+            }
+
             levelCompleteScreen.Hide();
             levelFailedScreen.Hide();
 
@@ -329,10 +481,44 @@ namespace Meowdoku
                 return;
             }
 
+            if (resultTransitionRoutine != null)
+            {
+                StopCoroutine(resultTransitionRoutine);
+                resultTransitionRoutine = null;
+            }
+
 #if USE_AVNADS_PLUGIN
             GameAnalyticsEvents.ExtraHeartUsed(AnalyticsLevelNumber);
 #endif
 
+            resultTransitionRoutine = StartCoroutine(RunExtraLifeReviveTransition(board.HeartsRemaining));
+        }
+
+        private IEnumerator RunExtraLifeReviveTransition(int heartsRemaining)
+        {
+            inputHandler.SetResultLocked(true);
+            failedTransitionPlayed = false;
+            levelFailedScreen.SetButtonsInteractable(false);
+
+            Tween hideTween = levelFailedScreen.HideForTransition();
+            if (hideTween != null)
+            {
+                yield return hideTween.WaitForCompletion(true);
+            }
+
+            ValidationResult validation = board.Validate();
+            gameplayScreen.Refresh(levelIndex, board.Level, validation);
+            boardView.RefreshVisuals(board, inputHandler.InputLocked);
+            gameplayScreen.PlayHeartGained(heartsRemaining);
+
+            Tween reviveTween = boardView.PlayExtraLifeReviveTransition(board);
+            if (reviveTween != null)
+            {
+                yield return reviveTween.WaitForCompletion(true);
+            }
+
+            inputHandler.SetResultLocked(false);
+            resultTransitionRoutine = null;
             Refresh();
         }
 

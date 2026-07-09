@@ -24,6 +24,7 @@ namespace Meowdoku
         private const float HeartIdleRotateDegrees = 5f;
         private const float RetryButtonDelaySeconds = 0.36f;
         private const float RetryAfterExtraLifeDelaySeconds = 0.5f;
+        private const float HideTransitionSeconds = 0.18f;
 
         [SerializeField] private RectTransform failedPanel;
         [SerializeField] private CanvasGroup failedPanelCanvasGroup;
@@ -143,6 +144,43 @@ namespace Meowdoku
             InsertButtonReveal(failSequence, retryButton, retryButtonCanvasGroup, retryDelay);
         }
 
+        public Tween HideForTransition(float seconds = HideTransitionSeconds)
+        {
+            if (failedPanel == null || !failedPanel.gameObject.activeSelf)
+            {
+                Hide();
+                return null;
+            }
+
+            KillTweens();
+            SetButtonsInteractable(false);
+
+            float duration = Mathf.Max(0.01f, seconds);
+            failSequence = DOTween.Sequence().SetUpdate(true);
+            failSequence.Join(failedPanelCanvasGroup.DOFade(0f, duration));
+            failSequence.Join(failedPanel.DOScale(0.94f, duration).SetEase(Ease.InSine));
+            failSequence.OnComplete(() =>
+            {
+                failSequence = null;
+                Hide();
+            });
+            return failSequence;
+        }
+
+        public void SetButtonsInteractable(bool interactable)
+        {
+            SetButtonInteractable(retryButtonCanvasGroup, interactable);
+            SetButtonInteractable(extraLifeButtonCanvasGroup, interactable && extraLifeButton != null && extraLifeButton.gameObject.activeSelf);
+        }
+
+        private static void SetButtonInteractable(CanvasGroup group, bool interactable)
+        {
+            if (group != null)
+            {
+                group.blocksRaycasts = interactable;
+            }
+        }
+
         private void InsertButtonReveal(Sequence sequence, RectTransform button, CanvasGroup group, float delay)
         {
             if (sequence == null || button == null || group == null)
@@ -219,7 +257,7 @@ namespace Meowdoku
 
         private string BuildFailMessage()
         {
-            return "<bounce><slidev>Cats Lost</slidev></bounce>";
+            return "<bounce><slidev>Out of Lives</slidev></bounce>";
         }
 
         private void ResolveReferences()

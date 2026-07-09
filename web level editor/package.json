@@ -1,5 +1,5 @@
 {
-    "name": "meowdoku-level-editor",
+    "name": "avn-level-editor-pawdoku",
     "private": true,
     "type": "module",
     "scripts": {

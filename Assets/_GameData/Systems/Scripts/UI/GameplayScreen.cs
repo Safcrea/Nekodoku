@@ -39,6 +39,11 @@ namespace Meowdoku
             lifeHearts.PlayHeartLostEffect(heartsRemaining);
         }
 
+        public void PlayHeartGained(int heartsRemaining)
+        {
+            lifeHearts.PlayHeartGainedEffect(heartsRemaining);
+        }
+
         public void PlayCatCollected()
         {
             catBasket.PlayCatCollected();

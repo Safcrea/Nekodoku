@@ -9828,7 +9828,7 @@ MonoBehaviour:
   m_BlockingObjects: 0
   m_BlockingMask:
     serializedVersion: 2
-    m_Bits: 4294967295
+    m_Bits: 55
 --- !u!114 &1827946474
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10438,6 +10438,7 @@ GameObject:
   - component: {fileID: 1989213275}
   - component: {fileID: 1989213274}
   - component: {fileID: 1989213276}
+  - component: {fileID: 1989213277}
   m_Layer: 0
   m_Name: Board
   m_TagString: Untagged
@@ -10480,6 +10481,7 @@ MonoBehaviour:
   boardRoot: {fileID: 1989213270}
   boardGridSizer: {fileID: 1989213274}
   boardShakeSpring: {fileID: 1989213276}
+  boardCanvasGroup: {fileID: 1989213277}
 --- !u!114 &1989213274
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10801,6 +10803,18 @@ MonoBehaviour:
   followerTransform: {fileID: 1989213270}
   useTransformAsTarget: 0
   targetTransform: {fileID: 0}
+--- !u!225 &1989213277
+CanvasGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1989213269}
+  m_Enabled: 1
+  m_Alpha: 1
+  m_Interactable: 1
+  m_BlocksRaycasts: 1
+  m_IgnoreParentGroups: 0
 --- !u!1 &2049855900
 GameObject:
   m_ObjectHideFlags: 0

@@ -28,9 +28,18 @@ namespace Meowdoku
 
         private const string RevealedAnimationName = "Revealed";
         private const string SadAnimationName = "Sad";
+        private const string ExcitedAnimationName = "Excited";
         private const float CatRevealFlipWaitSeconds = 0.45f;
         private const float CatRevealFlipRotationForce = 150f;
         private const float CatRevealFlipRotationDrag = 10f;
+        private const float CompletePulseSeconds = 0.34f;
+        private const float CompletePulseScale = 1.06f;
+        private const float FailurePulseSeconds = 0.28f;
+        private const float RevivePulseSeconds = 0.32f;
+        private const float RevivePulseScale = 1.035f;
+        private const float RetryClearSeconds = 0.28f;
+        private const float CatToPawFadeSeconds = 0.22f;
+        private const float PawPopScale = 1.08f;
 
         #endregion
 
@@ -44,6 +53,8 @@ namespace Meowdoku
         [SerializeField] private Image crossImage;
 
         [SerializeField] private Image catImage;
+
+        [SerializeField] private Image completedPawImage;
 
         [SerializeField] private Image noCatImage;
 
@@ -72,6 +83,9 @@ namespace Meowdoku
         [SerializeField] private float HintMinAlpha = 0.2f;
         [SerializeField] private float HintMaxAlpha = 0.55f;
         [SerializeField] private float HintPulseSeconds = 0.55f;
+        [SerializeField] private Color CompletePulseColor = new Color(1f, 0.9f, 0.5f, 1f);
+        [SerializeField] private Color FailurePulseColor = new Color(1f, 0.45f, 0.45f, 1f);
+        [SerializeField] private Color RevivePulseColor = new Color(0.68f, 1f, 0.78f, 1f);
 
         #endregion
 
@@ -114,6 +128,8 @@ namespace Meowdoku
         private bool catHintActive;
         private Tween crossHintTween;
         private bool crossHintActive;
+        private Tween resultTween;
+        private bool resultPawActive;
 
         #endregion
 
@@ -124,6 +140,11 @@ namespace Meowdoku
             crossImage.raycastTarget = false;
             catImage.raycastTarget = false;
             noCatImage.raycastTarget = false;
+            if (completedPawImage != null)
+            {
+                completedPawImage.raycastTarget = false;
+                HideCompletedPawImmediate();
+            }
         }
 
         private void OnEnable()
@@ -155,12 +176,16 @@ namespace Meowdoku
             CancelCrossResetPreview();
             baseColorTween?.Kill();
             baseColorTween = null;
+            resultTween?.Kill();
+            resultTween = null;
             catHintTween?.Kill();
             catHintTween = null;
             catHintActive = false;
             crossHintTween?.Kill();
             crossHintTween = null;
             crossHintActive = false;
+            resultPawActive = false;
+            HideCompletedPawImmediate();
             catRevealFlipInProgress = false;
             catRevealFrontShown = false;
         }
@@ -332,10 +357,19 @@ namespace Meowdoku
                 CancelCrossResetPreview();
             }
 
-            if (!catHintActive)
+            if (!catHintActive && !resultPawActive)
             {
                 catImage.enabled = revealedCat && (!catRevealFlipInProgress || catRevealFrontShown);
                 catImage.color = Color.white;
+            }
+            else if (resultPawActive)
+            {
+                catImage.enabled = false;
+            }
+
+            if (!resultPawActive)
+            {
+                HideCompletedPawImmediate();
             }
 
             if (!crossHintActive)
@@ -347,9 +381,14 @@ namespace Meowdoku
             noCatImage.color = Color.red;
             FadeBaseColorTo(Color.white, BaseShadeFadeSeconds);
 
-            if (revealedCat)
+            if (revealedCat && !resultPawActive)
             {
                 PlayRevealedCatAnimation(false);
+            }
+            else if (resultPawActive)
+            {
+                catReactionPlaying = false;
+                catAnimator?.Stop();
             }
             else
             {
@@ -522,6 +561,23 @@ namespace Meowdoku
             }
         }
 
+        private void PlayRevealedCatExcitedReaction()
+        {
+            GameHaptics.LightImpact();
+
+            if (!lastRevealedCat || resultPawActive || catAnimator == null)
+            {
+                return;
+            }
+
+            catReactionPlaying = true;
+            if (!catAnimator.PlayOnceThen(ExcitedAnimationName, RevealedAnimationName))
+            {
+                catReactionPlaying = false;
+                PlayRevealedCatAnimation(false);
+            }
+        }
+
         /// <summary>Pop + gold flash played when a cat is correctly revealed. Returns the tween so callers can await it.</summary>
         public Tween PlayCatFoundPop()
         {
@@ -547,21 +603,191 @@ namespace Meowdoku
             return sequence;
         }
 
+        public Tween PlayCompletePulse(bool replaceCatWithPaw = false)
+        {
+            KillResultTween();
+
+            Sequence sequence = DOTween.Sequence().SetUpdate(true);
+            sequence.Append(Rect.DOScale(CompletePulseScale, CompletePulseSeconds * 0.42f).SetEase(Ease.OutSine));
+            sequence.Append(Rect.DOScale(1f, CompletePulseSeconds * 0.58f).SetEase(Ease.InOutSine));
+
+            if (baseImage != null)
+            {
+                baseColorTween?.Kill();
+                baseImage.DOKill();
+                Color flashColor = CompletePulseColor;
+                flashColor.a = targetBaseColor.a;
+                sequence.Insert(0f, baseImage.DOColor(flashColor, CompletePulseSeconds * 0.36f).SetEase(Ease.OutSine));
+                sequence.Insert(CompletePulseSeconds * 0.36f, baseImage.DOColor(targetBaseColor, CompletePulseSeconds * 0.64f).SetEase(Ease.InOutSine));
+                baseColorTween = sequence;
+            }
+
+            if (replaceCatWithPaw)
+            {
+                InsertCatToPawTransition(sequence);
+            }
+
+            resultTween = sequence;
+            sequence.OnComplete(() =>
+            {
+                resultTween = null;
+                if (baseColorTween == sequence)
+                {
+                    baseColorTween = null;
+                }
+            });
+            return sequence;
+        }
+
+        private void InsertCatToPawTransition(Sequence sequence)
+        {
+            if (sequence == null || completedPawImage == null || !lastRevealedCat)
+            {
+                return;
+            }
+
+            resultPawActive = true;
+            completedPawImage.enabled = true;
+            completedPawImage.DOKill();
+            completedPawImage.rectTransform.DOKill();
+
+            Color pawColor = completedPawImage.color;
+            pawColor.a = 0f;
+            completedPawImage.color = pawColor;
+            completedPawImage.rectTransform.localScale = Vector3.one * 0.72f;
+
+            catImage.enabled = true;
+            catImage.DOKill();
+            Color catColor = catImage.color;
+            catColor.a = 1f;
+            catImage.color = catColor;
+
+            float start = CompletePulseSeconds * 0.12f;
+            sequence.Insert(start, catImage.DOFade(0f, CatToPawFadeSeconds).SetEase(Ease.InSine));
+            sequence.Insert(start + (CatToPawFadeSeconds * 0.22f), completedPawImage.DOFade(1f, CatToPawFadeSeconds).SetEase(Ease.OutSine));
+            sequence.Insert(start + (CatToPawFadeSeconds * 0.22f), completedPawImage.rectTransform.DOScale(PawPopScale, CatToPawFadeSeconds * 0.72f).SetEase(Ease.OutBack));
+            sequence.Insert(start + CatToPawFadeSeconds, completedPawImage.rectTransform.DOScale(1f, CatToPawFadeSeconds * 0.56f).SetEase(Ease.InOutSine));
+            sequence.InsertCallback(start + CatToPawFadeSeconds, () =>
+            {
+                catImage.enabled = false;
+                catAnimator?.Stop();
+            });
+        }
+
+        public Tween PlayFailurePulse()
+        {
+            KillResultTween();
+
+            Sequence sequence = DOTween.Sequence().SetUpdate(true);
+
+            if (baseImage != null)
+            {
+                baseColorTween?.Kill();
+                baseImage.DOKill();
+                Color flashColor = FailurePulseColor;
+                flashColor.a = targetBaseColor.a;
+                sequence.Insert(0f, baseImage.DOColor(flashColor, FailurePulseSeconds * 0.34f).SetEase(Ease.OutSine));
+                sequence.Insert(FailurePulseSeconds * 0.34f, baseImage.DOColor(targetBaseColor, FailurePulseSeconds * 0.66f).SetEase(Ease.InOutSine));
+                baseColorTween = sequence;
+            }
+
+            if (noCatImage != null)
+            {
+                noCatImage.enabled = true;
+                RectTransform noCatRect = noCatImage.rectTransform;
+                noCatRect.DOKill();
+                sequence.Insert(0f, noCatRect.DOPunchScale(new Vector3(0.2f, 0.2f, 0f), FailurePulseSeconds, 5, 0.5f).SetUpdate(true));
+            }
+
+            if (noCatSpring != null)
+            {
+                sequence.InsertCallback(0f, () => noCatSpring.AddVelocityScale(Vector3.one * WrongPunchScaleImpulse * 0.55f));
+            }
+
+            resultTween = sequence;
+            sequence.OnComplete(() =>
+            {
+                resultTween = null;
+                if (baseColorTween == sequence)
+                {
+                    baseColorTween = null;
+                }
+            });
+            return sequence;
+        }
+
+        public Tween PlayRevivePulse()
+        {
+            KillResultTween();
+
+            Sequence sequence = DOTween.Sequence().SetUpdate(true);
+            sequence.Append(Rect.DOScale(RevivePulseScale, RevivePulseSeconds * 0.45f).SetEase(Ease.OutSine));
+            sequence.Append(Rect.DOScale(1f, RevivePulseSeconds * 0.55f).SetEase(Ease.InOutSine));
+
+            if (baseImage != null)
+            {
+                baseColorTween?.Kill();
+                baseImage.DOKill();
+                Color flashColor = RevivePulseColor;
+                flashColor.a = targetBaseColor.a;
+                sequence.Insert(0f, baseImage.DOColor(flashColor, RevivePulseSeconds * 0.35f).SetEase(Ease.OutSine));
+                sequence.Insert(RevivePulseSeconds * 0.35f, baseImage.DOColor(targetBaseColor, RevivePulseSeconds * 0.65f).SetEase(Ease.InOutSine));
+                baseColorTween = sequence;
+            }
+
+            resultTween = sequence;
+            sequence.OnComplete(() =>
+            {
+                resultTween = null;
+                if (baseColorTween == sequence)
+                {
+                    baseColorTween = null;
+                }
+            });
+            return sequence;
+        }
+
+        public Tween PlayRetryClear()
+        {
+            KillResultTween();
+
+            canvasGroup.blocksRaycasts = false;
+
+            Sequence sequence = DOTween.Sequence().SetUpdate(true);
+            sequence.Join(Rect.DOScale(0f, RetryClearSeconds).SetEase(Ease.InBack));
+            sequence.Join(canvasGroup.DOFade(0f, RetryClearSeconds * 0.82f).SetEase(Ease.OutSine));
+            sequence.OnComplete(() =>
+            {
+                resultTween = null;
+                canvasGroup.blocksRaycasts = false;
+            });
+            resultTween = sequence;
+            return sequence;
+        }
+
         /// <summary>Cancels any in-flight per-cell animation and snaps back to the last known state. Call around level load/restart/undo.</summary>
         public void StopJuice()
         {
+            resultTween?.Kill();
+            resultTween = null;
             Rect.DOKill();
             baseColorTween?.Kill();
             baseColorTween = null;
             baseImage.DOKill();
             catImage.DOKill();
+            noCatImage.DOKill();
+            noCatImage.rectTransform.DOKill();
             catHintTween?.Kill();
             catHintTween = null;
             catHintActive = false;
             crossHintTween?.Kill();
             crossHintTween = null;
             crossHintActive = false;
+            resultPawActive = false;
+            HideCompletedPawImmediate();
             Rect.localScale = Vector3.one;
+            canvasGroup.DOKill();
+            canvasGroup.alpha = AlphaForTutorialDimMode(tutorialDimMode);
             CancelCrossResetPreview();
             catRevealFlipInProgress = false;
             catRevealFrontShown = false;
@@ -581,6 +807,49 @@ namespace Meowdoku
             SetBaseColorImmediate(Color.white);
         }
 
+        private void KillResultTween()
+        {
+            resultTween?.Kill();
+            resultTween = null;
+            Rect.DOKill();
+            canvasGroup.DOKill();
+
+            if (baseImage != null)
+            {
+                baseColorTween?.Kill();
+                baseColorTween = null;
+                baseImage.DOKill();
+            }
+
+            if (noCatImage != null)
+            {
+                noCatImage.rectTransform.DOKill();
+            }
+
+            if (completedPawImage != null)
+            {
+                completedPawImage.DOKill();
+                completedPawImage.rectTransform.DOKill();
+            }
+        }
+
+        private void HideCompletedPawImmediate()
+        {
+            if (completedPawImage == null)
+            {
+                return;
+            }
+
+            completedPawImage.DOKill();
+            completedPawImage.rectTransform.DOKill();
+            completedPawImage.enabled = false;
+            completedPawImage.rectTransform.localScale = Vector3.one;
+
+            Color color = completedPawImage.color;
+            color.a = 0f;
+            completedPawImage.color = color;
+        }
+
         #endregion
 
         #region Input Handling
@@ -591,6 +860,13 @@ namespace Meowdoku
             {
                 dragged = false;
                 hasRecentTap = false;
+                return;
+            }
+
+            if (lastRevealedCat && !catRevealFlipInProgress && !resultPawActive)
+            {
+                hasRecentTap = false;
+                PlayRevealedCatExcitedReaction();
                 return;
             }
 
@@ -653,7 +929,7 @@ namespace Meowdoku
 
         private void HandleCatAnimationCompleted(string animationName)
         {
-            if (animationName == SadAnimationName)
+            if (animationName == SadAnimationName || animationName == ExcitedAnimationName)
             {
                 catReactionPlaying = false;
             }
