@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "970690609988",
+    "project_id": "pawduko-l-f-hyp-puz4",
+    "storage_bucket": "pawduko-l-f-hyp-puz4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:970690609988:android:5a83f4d420923bd984cd11",
+        "android_client_info": {
+          "package_name": "com.cat.paw.sudoku.puzzle.game"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBl0ZAOFsMdzJkiu_j73FDVpnXd-QhiDhA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
