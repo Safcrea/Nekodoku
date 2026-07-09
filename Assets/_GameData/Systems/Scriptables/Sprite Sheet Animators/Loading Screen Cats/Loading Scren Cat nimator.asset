@@ -40,7 +40,7 @@ MonoBehaviour:
     - {fileID: 1565413024, guid: 7a1609f9aa5a04e96b72d286158d210e, type: 3}
     - {fileID: 454802989, guid: 7a1609f9aa5a04e96b72d286158d210e, type: 3}
     - {fileID: -239808886, guid: 7a1609f9aa5a04e96b72d286158d210e, type: 3}
-    frameRate: 20
+    frameRate: 60
     loop: 1
   - name: Cat2
     frames:
@@ -69,7 +69,7 @@ MonoBehaviour:
     - {fileID: -2063259779, guid: ddd5783d54fa842e1bdd0475e70bc6cf, type: 3}
     - {fileID: 960816652, guid: ddd5783d54fa842e1bdd0475e70bc6cf, type: 3}
     - {fileID: 238629947, guid: ddd5783d54fa842e1bdd0475e70bc6cf, type: 3}
-    frameRate: 20
+    frameRate: 60
     loop: 1
   - name: Cat3
     frames:
@@ -98,7 +98,7 @@ MonoBehaviour:
     - {fileID: -1214744193, guid: 716847680a41c4de7be16ef91012d398, type: 3}
     - {fileID: 22469676, guid: 716847680a41c4de7be16ef91012d398, type: 3}
     - {fileID: -1576593920, guid: 716847680a41c4de7be16ef91012d398, type: 3}
-    frameRate: 20
+    frameRate: 60
     loop: 1
   - name: Cat4
     frames:
@@ -127,7 +127,7 @@ MonoBehaviour:
     - {fileID: -602177220, guid: 681d6215d20664484a9179ae09c844df, type: 3}
     - {fileID: -799605555, guid: 681d6215d20664484a9179ae09c844df, type: 3}
     - {fileID: -27601688, guid: 681d6215d20664484a9179ae09c844df, type: 3}
-    frameRate: 20
+    frameRate: 60
     loop: 1
   - name: Cat5
     frames:
@@ -156,5 +156,5 @@ MonoBehaviour:
     - {fileID: 1806352818, guid: b4898942b249e439db3ea6adb4e7d1f4, type: 3}
     - {fileID: -1837504687, guid: b4898942b249e439db3ea6adb4e7d1f4, type: 3}
     - {fileID: 982083743, guid: b4898942b249e439db3ea6adb4e7d1f4, type: 3}
-    frameRate: 12
+    frameRate: 60
     loop: 1

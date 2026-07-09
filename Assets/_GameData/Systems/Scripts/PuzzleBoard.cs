@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 namespace Meowdoku
 {
     public sealed class PuzzleBoard
@@ -217,6 +218,170 @@ namespace Meowdoku
             }
 
             return count;
+        }
+
+        /// <summary>First still-hidden, unrevealed cat in row-major order - used by the "Reveal A Cat"
+        /// powerup. Deterministic rather than random, but trivial to change later.</summary>
+        public bool TryFindHiddenCat(out Coord coord)
+        {
+            for (int row = 0; row < Size; row++)
+            {
+                for (int column = 0; column < Size; column++)
+                {
+                    if (HasHiddenCat(row, column) && !IsRevealed(row, column))
+                    {
+                        coord = new Coord(row, column);
+                        return true;
+                    }
+                }
+            }
+
+            coord = default;
+            return false;
+        }
+
+        /// <summary>
+        /// The "Hint" powerup's deduction scan. Tries each rule tier in order - column, then row, then
+        /// touching (8-neighbor), then color region - against every revealed cat (row-major); the first
+        /// tier where any revealed cat still has an uncrossed, unrevealed cell wins, and that cat's whole
+        /// set of remaining cells for that tier is returned together (not one cell at a time). Falls back
+        /// to pointing at a still-hidden cat when nothing is deducible anywhere.
+        /// </summary>
+        public HintResult FindHint()
+        {
+            List<Coord> revealedCats = new List<Coord>();
+            for (int row = 0; row < Size; row++)
+            {
+                for (int column = 0; column < Size; column++)
+                {
+                    if (HasRevealedCat(row, column))
+                    {
+                        revealedCats.Add(new Coord(row, column));
+                    }
+                }
+            }
+
+            Coord[] columnHint = FindTierHint(revealedCats, ColumnCellsExceptCat);
+            if (columnHint.Length > 0)
+            {
+                return HintResult.Cross(columnHint);
+            }
+
+            Coord[] rowHint = FindTierHint(revealedCats, RowCellsExceptCat);
+            if (rowHint.Length > 0)
+            {
+                return HintResult.Cross(rowHint);
+            }
+
+            Coord[] neighborHint = FindTierHint(revealedCats, NeighborCellsExceptCat);
+            if (neighborHint.Length > 0)
+            {
+                return HintResult.Cross(neighborHint);
+            }
+
+            Coord[] regionHint = FindTierHint(revealedCats, RegionCellsExceptCat);
+            if (regionHint.Length > 0)
+            {
+                return HintResult.Cross(regionHint);
+            }
+
+            return TryFindHiddenCat(out Coord hidden) ? HintResult.Reveal(hidden) : HintResult.None;
+        }
+
+        private Coord[] FindTierHint(List<Coord> revealedCats, Func<Coord, List<Coord>> cellsForCat)
+        {
+            foreach (Coord cat in revealedCats)
+            {
+                List<Coord> uncrossed = new List<Coord>();
+                foreach (Coord cell in cellsForCat(cat))
+                {
+                    if (!IsRevealed(cell.Row, cell.Column) && GetMark(cell.Row, cell.Column) != CellMark.Cross)
+                    {
+                        uncrossed.Add(cell);
+                    }
+                }
+
+                if (uncrossed.Count > 0)
+                {
+                    return uncrossed.ToArray();
+                }
+            }
+
+            return Array.Empty<Coord>();
+        }
+
+        private List<Coord> ColumnCellsExceptCat(Coord cat)
+        {
+            List<Coord> cells = new List<Coord>();
+            for (int row = 0; row < Size; row++)
+            {
+                if (row != cat.Row)
+                {
+                    cells.Add(new Coord(row, cat.Column));
+                }
+            }
+
+            return cells;
+        }
+
+        private List<Coord> RowCellsExceptCat(Coord cat)
+        {
+            List<Coord> cells = new List<Coord>();
+            for (int column = 0; column < Size; column++)
+            {
+                if (column != cat.Column)
+                {
+                    cells.Add(new Coord(cat.Row, column));
+                }
+            }
+
+            return cells;
+        }
+
+        private static readonly (int dr, int dc)[] NeighborOffsets =
+        {
+            (-1, -1), (-1, 0), (-1, 1),
+            (0, -1), (0, 1),
+            (1, -1), (1, 0), (1, 1)
+        };
+
+        private List<Coord> NeighborCellsExceptCat(Coord cat)
+        {
+            List<Coord> cells = new List<Coord>();
+            foreach ((int dr, int dc) in NeighborOffsets)
+            {
+                int row = cat.Row + dr;
+                int column = cat.Column + dc;
+                if (Contains(row, column))
+                {
+                    cells.Add(new Coord(row, column));
+                }
+            }
+
+            return cells;
+        }
+
+        private List<Coord> RegionCellsExceptCat(Coord cat)
+        {
+            int region = Level.RegionAt(cat.Row, cat.Column);
+            List<Coord> cells = new List<Coord>();
+            for (int row = 0; row < Size; row++)
+            {
+                for (int column = 0; column < Size; column++)
+                {
+                    if (row == cat.Row && column == cat.Column)
+                    {
+                        continue;
+                    }
+
+                    if (Level.RegionAt(row, column) == region)
+                    {
+                        cells.Add(new Coord(row, column));
+                    }
+                }
+            }
+
+            return cells;
         }
 
         public void ClearCellsForUndo()

@@ -88,6 +88,41 @@ namespace Meowdoku
             return cellGrid[row, column];
         }
 
+        // ---- powerup hint (fade-pulse highlight, same GridCell hint API the tutorial's guide uses) ----
+
+        public void ShowHintCross(IEnumerable<Coord> cellsToHighlight)
+        {
+            foreach (Coord coord in cellsToHighlight)
+            {
+                GridCell cell = GetCellView(coord.Row, coord.Column);
+                if (cell != null)
+                {
+                    cell.SetCrossHint(true);
+                }
+            }
+        }
+
+        public void ShowHintCat(Coord cat)
+        {
+            GridCell cell = GetCellView(cat.Row, cat.Column);
+            if (cell != null)
+            {
+                cell.SetCatHint(true);
+            }
+        }
+
+        /// <summary>Unconditionally clears both hint kinds on every cell. Safe/idempotent even when no
+        /// hint is active (GridCell no-ops if its hint flag is already off), so callers don't need to
+        /// track which cells were highlighted.</summary>
+        public void ClearHint()
+        {
+            foreach (GridCell cell in cells)
+            {
+                cell.SetCatHint(false);
+                cell.SetCrossHint(false);
+            }
+        }
+
         public void PlayIntro(bool inputLocked)
         {
             if (!isActiveAndEnabled)
