@@ -33,13 +33,22 @@ namespace Meowdoku
         private const float TabDockScale = 0.35f;
         private const float FocusRingPadding = 34f;
         private const float DimOverlayFadeSeconds = 0.35f;
-        private const float RevealHandPulseSeconds = 1.5f;
-        private const float RevealHandTapRotationDegrees = 10f;
+        private const float RevealHandTapRotationDegrees = 7f;
         private const float GuideFadeSeconds = 0.25f;
         private const float PhaseTransitionSeconds = 0.5f;
         private const float GuideMoveLerpSpeed = 10f;
         private const float InfoCardPopSeconds = 0.3f;
         private const float InfoCardFadeOutSeconds = 0.3f;
+
+        // Reveal-cat double-tap guide: two short, discrete presses (not one smooth undulation) so it
+        // actually reads as a double-click, followed by a long hold before the loop repeats.
+        private const float RevealHandCycleSeconds = 1.7f;
+        private const float RevealTapLeadInSeconds = 0.08f;
+        private const float RevealTapPressSeconds = 0.09f;
+        private const float RevealTapReleaseSeconds = 0.1f;
+        private const float RevealTapGapSeconds = 0.1f;
+        private const float RevealHandPressScale = 0.82f;
+        private const float RevealHandPressOffsetShrink = 0.08f;
 
         /// <summary>All 8 neighbors, in reading order - the touching rule forbids orthogonal AND
         /// diagonal contact, so the teach step must cover every uncrossed neighbor, not just diagonals.</summary>
@@ -159,11 +168,16 @@ namespace Meowdoku
 
         public PuzzleBoard Board => board;
 
-        /// <summary>True while a double-tap should be allowed to commit a cat (only during the three
-        /// scripted reveal steps) - false while a rule's crossing cells are the only allowed input, so
-        /// an accidental double-tap on a crossing target can't reveal it as a miss and permanently
-        /// lock that cell out of being crossed.</summary>
+        /// <summary>True while a double-tap should be allowed to commit the current scripted cat -
+        /// false while a rule's crossing cells are the only allowed input, so an accidental double-tap
+        /// on a crossing target can't reveal it as a miss and permanently lock that cell out of being
+        /// crossed.</summary>
         public bool AllowsCommit { get; private set; }
+
+        public bool AllowsCommitAt(int row, int column)
+        {
+            return lessonActive && AllowsCommit && IsCurrentRevealCat(new Coord(row, column));
+        }
 
         private void Awake()
         {
@@ -389,6 +403,14 @@ namespace Meowdoku
         private void EnterPhase(Phase next)
         {
             phase = next;
+
+#if USE_AVNADS_PLUGIN
+            // Phase's declaration order IS the 6-step order the analytics wants (RevealCat0..TeachColor
+            // = first cat click, first rule play, second cat click, second rule play, third cat click,
+            // third rule play) - one call site instead of one per case below.
+            GameAnalyticsEvents.TutorialAnalysis((int)phase + 1);
+#endif
+
             switch (phase)
             {
                 case Phase.RevealCat0:
@@ -419,6 +441,7 @@ namespace Meowdoku
         {
             AllowsCommit = true;
             boardView.SetTutorialRestriction(new[] { cat }, TutorialRequiredCells());
+            boardView.SetTutorialInteractionEnabled(true);
             boardView.RefreshVisuals(board, false);
             ShowRevealGuide(cat);
             ShowInfoCard(LocalizationService.Get("tutorial.info.revealCat"));
@@ -680,6 +703,7 @@ namespace Meowdoku
             Coord[] remainingCells = RemainingGuideCells(guide);
             Coord[] allowed = remainingCells.Length > 0 ? remainingCells : guide.Cells.Length > 0 ? guide.Cells : new[] { guide.Start };
             boardView.SetTutorialRestriction(allowed, TutorialRequiredCells());
+            boardView.SetTutorialInteractionEnabled(true);
             boardView.RefreshVisuals(board, false);
             ShowCrossGuide(guide, remainingCells);
         }
@@ -1020,19 +1044,51 @@ namespace Meowdoku
 
         private IEnumerator AnimateRevealGuide(Coord cat)
         {
+            float secondTapStart = RevealTapLeadInSeconds + RevealTapPressSeconds + RevealTapReleaseSeconds + RevealTapGapSeconds;
+
             while (tutorialGuideRoot != null && tutorialGuideRoot.gameObject.activeSelf)
             {
-                float phase01 = Mathf.Repeat(Time.unscaledTime, RevealHandPulseSeconds) / RevealHandPulseSeconds;
-                float firstTap = TapPulse(phase01, 0.18f, 0.18f);
-                float secondTap = TapPulse(phase01, 0.48f, 0.18f);
+                float t = Mathf.Repeat(Time.unscaledTime, RevealHandCycleSeconds);
+                float firstTap = TapEnvelope(t, RevealTapLeadInSeconds, RevealTapPressSeconds, RevealTapReleaseSeconds);
+                float secondTap = TapEnvelope(t, secondTapStart, RevealTapPressSeconds, RevealTapReleaseSeconds);
                 float press = Mathf.Max(firstTap, secondTap);
-                float handRotation = (secondTap - firstTap) * RevealHandTapRotationDegrees;
-                float ringPulse = 0.5f + (Mathf.Sin(Time.unscaledTime * Mathf.PI * 2f / 1.1f) * 0.5f);
+                float handRotation = -press * RevealHandTapRotationDegrees;
+                float idlePulse = 0.5f + (Mathf.Sin(Time.unscaledTime * Mathf.PI * 2f / 1.1f) * 0.5f);
+                // Ring mostly tracks the press itself (so it visibly flashes with each tap) with only a
+                // faint idle breathing during the hold, instead of oscillating on its own unrelated cycle.
+                float ringPulse = Mathf.Max(press, idlePulse * 0.3f);
                 PositionGuideAt(cat, press, ringPulse, handRotation);
                 yield return null;
             }
 
             guideRoutine = null;
+        }
+
+        /// <summary>
+        /// Quick ease-out rise to full press, ease-out fall back to rest - a discrete finger-press shape
+        /// rather than a smooth sine bump, so two of these placed close together actually read as a
+        /// double-click instead of one long undulation. Returns 0 outside [start, start+pressSeconds+releaseSeconds].
+        /// </summary>
+        private static float TapEnvelope(float t, float start, float pressSeconds, float releaseSeconds)
+        {
+            float local = t - start;
+            if (local < 0f)
+            {
+                return 0f;
+            }
+
+            if (local < pressSeconds)
+            {
+                return Mathf.Sin(Mathf.Clamp01(local / pressSeconds) * Mathf.PI * 0.5f);
+            }
+
+            local -= pressSeconds;
+            if (local < releaseSeconds)
+            {
+                return Mathf.Cos(Mathf.Clamp01(local / releaseSeconds) * Mathf.PI * 0.5f);
+            }
+
+            return 0f;
         }
 
         private IEnumerator AnimateGuide(SubGuide guide)
@@ -1117,8 +1173,11 @@ namespace Meowdoku
             cellSize = guideSmoothedCellSize;
 
             RectTransform handRect = tutorialHandImage.rectTransform;
-            handRect.anchoredPosition = center + new Vector2(cellSize * 0.34f, -cellSize * 0.34f);
-            float handScale = Mathf.Lerp(1f, 0.94f, Mathf.Clamp01(press));
+            // Shrinks the diagonal offset slightly on press, so the hand visibly "pushes into" the cell
+            // on each tap rather than only shrinking in place - reads much more like an actual finger tap.
+            float offsetMagnitude = cellSize * (0.34f - (RevealHandPressOffsetShrink * Mathf.Clamp01(press)));
+            handRect.anchoredPosition = center + new Vector2(offsetMagnitude, -offsetMagnitude);
+            float handScale = Mathf.Lerp(1f, RevealHandPressScale, Mathf.Clamp01(press));
             handRect.localScale = Vector3.one * handScale;
             handRect.localRotation = Quaternion.Euler(0f, 0f, handRotationDegrees);
         }
