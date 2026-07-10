@@ -350,7 +350,7 @@ public class FinzAnalysisManager : MonoBehaviour
     private const string PREF_AD_COUNT = "AdCount";
 
     // Updated thresholds
-    private readonly int[] AD_THRESHOLDS = { 10, 14, 18, 22 };
+    private readonly int[] AD_THRESHOLDS = { 4, 8, 12, 16, 20, 40 };
 
     public void Taichi2Event(double impressionRevenue)
     {
@@ -397,10 +397,12 @@ public class FinzAnalysisManager : MonoBehaviour
     {
         switch (threshold)
         {
-            case 10: return "TenAdsShown";
-            case 14: return "FourteenAdsShown";
-            case 18: return "EighteenAdsShown";
-            case 22: return "TwentyTwoAdsShown";
+            case 4: return "FourAdsShown";
+            case 8: return "EightAdsShown";
+            case 12: return "TwelveAdsShown";
+            case 16: return "SixteenAdsShown";
+            case 20: return "TwentyAdsShown";
+            case 40: return "FortyAdsShown";
             default: return "AdsShown";
         }
     }

@@ -48,31 +48,66 @@ namespace AVN.AdsPlugin.Services
         {
             if (_sdkInitialized)
             {
+                Debug.Log("-------- MAX SDK Initialize called again but is already initialized - skipping re-init --------");
+                DebugLogger.AVNLog("MaxAdsProvider Initialize called but _sdkInitialized already true - re-firing SDKInitializedSuccessfully without touching the SDK");
                 SDKInitializedSuccessfully?.Invoke();
                 return;
             }
 
+            // MaxSdk.InitializeSdk() reads its key from the AppLovin Integration Manager settings baked
+            // into the project, not from this parameter - it exists for interface parity with the other
+            // providers (e.g. LevelPlay) that DO take a runtime key. Logged here purely so a blank/short
+            // value flowing in from config is visible while diagnosing an init that never fires.
+            Debug.Log($"-------- MAX SDK Initialization starting | sdkKey param present={!string.IsNullOrWhiteSpace(sdkKey)} (len={sdkKey?.Length ?? 0}), actual key comes from AppLovin Integration Manager --------");
             DebugLogger.AVNLog("MaxAdsProvider Initialize called");
             MaxSdkCallbacks.OnSdkInitializedEvent -= OnSdkInitialized;
             MaxSdkCallbacks.OnSdkInitializedEvent += OnSdkInitialized;
             MaxSdk.InitializeSdk();
+            DebugLogger.AVNLog("MaxAdsProvider MaxSdk.InitializeSdk() called - waiting for OnSdkInitializedEvent callback");
         }
 
         private void OnSdkInitialized(MaxSdkBase.SdkConfiguration sdkConfiguration)
         {
             MaxSdkCallbacks.OnSdkInitializedEvent -= OnSdkInitialized;
             DebugLogger.AVNLog("MaxAdsProvider SDK Initialized");
-            Debug.Log("-------- MAX SDK Initialization Complete --------");
+
+            // IsSuccessfullyInitialized is MAX's own signal for whether init actually went well - logged
+            // (not acted on) so a "completed but not successful" init is visible instead of looking
+            // identical to a clean one. _sdkInitialized/SDKInitializedSuccessfully still follow the
+            // callback firing at all, matching this provider's existing behavior.
+            if (sdkConfiguration.IsSuccessfullyInitialized)
+            {
+                Debug.Log("-------- MAX SDK Initialization Complete | success=true"
+                    + " countryCode=" + sdkConfiguration.CountryCode
+                    + " testModeEnabled=" + sdkConfiguration.IsTestModeEnabled
+                    + " consentGeography=" + sdkConfiguration.ConsentFlowUserGeography
+                    + " --------");
+            }
+            else
+            {
+                Debug.LogWarning("-------- MAX SDK Initialization callback fired but IsSuccessfullyInitialized=false"
+                    + " countryCode=" + sdkConfiguration.CountryCode
+                    + " testModeEnabled=" + sdkConfiguration.IsTestModeEnabled
+                    + " consentGeography=" + sdkConfiguration.ConsentFlowUserGeography
+                    + " --------");
+            }
+
             _sdkInitialized = true;
             SDKInitializedSuccessfully?.Invoke();
         }
 
         public void ConfigureAdIds(string bannerId, string mrecId, string rewardedId)
         {
-            DebugLogger.AVNLog("MaxAdsProvider ConfigureAdIds called");
             bannerAdUnitId = NormalizeId(bannerId);
             mrecAdUnitId = NormalizeId(mrecId);
             rewardedAdUnitId = NormalizeId(rewardedId);
+
+            // "SDK initialized fine but nothing loads" is very often a missing ad unit id, not an SDK
+            // problem - surfaced here since it's otherwise invisible until a Load call fails much later.
+            DebugLogger.AVNLog("MaxAdsProvider ConfigureAdIds called | banner="
+                + (string.IsNullOrEmpty(bannerAdUnitId) ? "MISSING" : "set")
+                + " mrec=" + (string.IsNullOrEmpty(mrecAdUnitId) ? "MISSING" : "set")
+                + " rewarded=" + (string.IsNullOrEmpty(rewardedAdUnitId) ? "MISSING" : "set"));
         }
         #endregion
 

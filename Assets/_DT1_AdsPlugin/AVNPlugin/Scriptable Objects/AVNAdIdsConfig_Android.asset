@@ -13,11 +13,11 @@ MonoBehaviour:
   m_Name: AVNAdIdsConfig_Android
   m_EditorClassIdentifier: Assembly-CSharp::AVN.AdsPlugin.Controllers.AVNAdIdsConfig
   adsSDKKey: VTCD1lu3AeRCH0n3OhKA2DfisH431CuWm5lnrcr_GGBXHzbfewrh8UO-mS2nfwIP_2Aqe_qvG_RXy1Cby1I4Vg
-  bannerAdUnitId: 9b0085370c808ee6
-  mrecAdUnitId: f1d9905a4b37a99c
-  rewardedAdUnitId: 0008a03fc3d5928f
+  bannerAdUnitId: 5ec7be49e9257a49
+  mrecAdUnitId: 46117ffc24865204
+  rewardedAdUnitId: e9e8abd06f87fb04
   interAdUnitIds:
-  - a89deacf7676dc47
+  - 9e79e80266e75461
   appOpenAdUnitId1: ca-app-pub-4921234158243313/5348873053
   appOpenAdUnitId2: ca-app-pub-4921234158243313/7623682602
   showIdsJsonPreview: 1
