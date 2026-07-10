@@ -33,8 +33,10 @@ namespace Meowdoku
 
         [SerializeField] private LevelCompleteBucket bucket;
 
+        [Tooltip("Full-screen dim behind the panel - fades 0→1 while the screen shows, fades back to 0 during the outro when it hides. The panel itself only pops in, it does not fade.")]
+        [SerializeField] private CanvasGroup bgCanvasGroup;
+
         [SerializeField] private RectTransform winPanel;
-        [SerializeField] private CanvasGroup winPanelCanvasGroup;
         [SerializeField] private RectTransform winLabel;
         [SerializeField] private CanvasGroup winLabelCanvasGroup;
         [SerializeField] private TypewriterComponent winTypewriter;
@@ -119,6 +121,14 @@ namespace Meowdoku
 
         private void PlayPanelSequence()
         {
+            // BG Canvas is Win Panel's parent in the hierarchy, not a sibling - Win Panel staying
+            // inactive despite its own SetActive(true) below, with the fade/pop tweens never visibly
+            // doing anything, is what an inactive ancestor looks like from here.
+            if (bgCanvasGroup != null)
+            {
+                bgCanvasGroup.gameObject.SetActive(true);
+            }
+
             winPanel.gameObject.SetActive(true);
 
             KillPanelTweens();
@@ -139,7 +149,10 @@ namespace Meowdoku
             }
 
             SnapSpring(winPanelSpring, winPanel, winPanel.localPosition, Vector3.one * 0.84f, Quaternion.identity);
-            winPanelCanvasGroup.alpha = 0f;
+            if (bgCanvasGroup != null)
+            {
+                bgCanvasGroup.alpha = 0f;
+            }
             winLabel.localScale = Vector3.one * 0.84f;
             winLabel.localRotation = Quaternion.identity;
             winLabelCanvasGroup.alpha = 0f;
@@ -151,7 +164,10 @@ namespace Meowdoku
             nextButtonCanvasGroup.alpha = 0f;
 
             panelSequence = DOTween.Sequence().SetUpdate(true);
-            panelSequence.Join(winPanelCanvasGroup.DOFade(1f, PopSeconds));
+            if (bgCanvasGroup != null)
+            {
+                panelSequence.Insert(0f, bgCanvasGroup.DOFade(1f, PopSeconds));
+            }
             panelSequence.InsertCallback(0f, () => PopScale(winPanelSpring, Vector3.one, panelPopScaleImpulse));
 
             panelSequence.Insert(StaggerSeconds, winLabelCanvasGroup.DOFade(1f, PopSeconds * 0.6f));
@@ -224,9 +240,13 @@ namespace Meowdoku
 
             outroSequence?.Kill();
             outroSequence = DOTween.Sequence().SetUpdate(true);
-            outroSequence.Join(winPanelCanvasGroup.DOFade(0f, OutroSeconds));
             outroSequence.Join(winLabelCanvasGroup.DOFade(0f, OutroSeconds));
             outroSequence.Join(nextButtonCanvasGroup.DOFade(0f, OutroSeconds));
+
+            if (bgCanvasGroup != null)
+            {
+                outroSequence.Join(bgCanvasGroup.DOFade(0f, OutroSeconds));
+            }
 
             if (commentCanvasGroup != null)
             {
@@ -265,7 +285,11 @@ namespace Meowdoku
             winPanel.gameObject.SetActive(false);
 
             SnapSpring(winPanelSpring, winPanel, winPanel.localPosition, Vector3.one, Quaternion.identity);
-            winPanelCanvasGroup.alpha = 1f;
+            if (bgCanvasGroup != null)
+            {
+                bgCanvasGroup.alpha = 0f;
+                bgCanvasGroup.gameObject.SetActive(false);
+            }
             winLabel.localScale = Vector3.one;
             winLabel.localRotation = Quaternion.identity;
             winLabelCanvasGroup.alpha = 1f;
@@ -298,7 +322,10 @@ namespace Meowdoku
             nextButtonPulseTween = null;
 
             winPanel.DOKill();
-            winPanelCanvasGroup.DOKill();
+            if (bgCanvasGroup != null)
+            {
+                bgCanvasGroup.DOKill();
+            }
             winLabel.DOKill();
             winLabelCanvasGroup.DOKill();
             nextButton.DOKill();

@@ -58,9 +58,22 @@ namespace Meowdoku
         public PuzzleBoard Board => board;
         public bool IsLessonActive { get; private set; }
 
-        /// <summary>True while a double-tap should be blocked - only during the lesson's rule-crossing
-        /// steps, never during its cat-reveal steps (where a double-tap is exactly what's asked for).</summary>
-        public bool IsLessonCommitBlocked => IsLessonActive && tutorialLessonController != null && !tutorialLessonController.AllowsCommit;
+        /// <summary>Filters cat commits on the lesson board so wrong double-taps behave like normal
+        /// cross toggles instead of creating revealed misses/hearts lost.</summary>
+        public bool CanCommitCatAt(int row, int column)
+        {
+            if (IsLessonActive && tutorialLessonController != null)
+            {
+                return tutorialLessonController.AllowsCommitAt(row, column);
+            }
+
+            if (isLessonBoardLoaded && board != null)
+            {
+                return board.HasHiddenCat(row, column);
+            }
+
+            return true;
+        }
 
         /// <summary>Player-facing level number (1-based), matching the HUD's "Level {levelIndex + 1}"
         /// and SaveCurrentLevelNumber's own PlayerPrefs convention - the single source of truth for what
@@ -79,7 +92,10 @@ namespace Meowdoku
 
         private void Start()
         {
+#if UNITY_ANDROID
             Application.targetFrameRate = 60;
+#endif
+            AVNPlugin.DTInstance?.ResetDelayBeforeFirstAdStartTime();
             LocalizationService.InitializeDefaultIfNeeded();
 
             inputHandler.Initialize(this, boardView, gameplayScreen);
@@ -138,6 +154,12 @@ namespace Meowdoku
                 LoadLevel(GetSavedLevelIndex());
                 return;
             }
+
+#if USE_AVNADS_PLUGIN
+            // Mirrors LoadLevel's own Started event, using level 0 to represent the pre-Level-1 lesson
+            // (never a real entry in `levels`, so it has no AnalyticsLevelNumber of its own).
+            GameAnalyticsEvents.LevelAnalysis(0, LevelState.Started, LevelMode.DEFAULT);
+#endif
 
             undoStack.Clear();
             boardView.RebuildCells(board, inputHandler);
@@ -314,7 +336,7 @@ namespace Meowdoku
             }
 
             levelCompleteReported = true;
-            GameAnalyticsEvents.CustomLevelAnalysis(AnalyticsLevelNumber, LevelState.Completed, LevelMode.DEFAULT);
+            GameAnalyticsEvents.CustomLevelAnalysis(AnalyticsLevelNumber, LevelState.Completed);
 #endif
         }
 
@@ -327,7 +349,7 @@ namespace Meowdoku
             }
 
             levelFailedReported = true;
-            GameAnalyticsEvents.CustomLevelAnalysis(AnalyticsLevelNumber, LevelState.Failed, LevelMode.DEFAULT);
+            GameAnalyticsEvents.CustomLevelAnalysis(AnalyticsLevelNumber, LevelState.Failed);
 #endif
         }
 
@@ -357,7 +379,8 @@ namespace Meowdoku
 #if USE_AVNADS_PLUGIN
             levelCompleteReported = false;
             levelFailedReported = false;
-            GameAnalyticsEvents.CustomLevelAnalysis(AnalyticsLevelNumber, LevelState.Started, LevelMode.DEFAULT);
+            GameAnalyticsEvents.LevelAnalysis(AnalyticsLevelNumber, LevelState.Started, LevelMode.DEFAULT);
+
 #endif
             board = new PuzzleBoard(levels[levelIndex]);
             undoStack.Clear();
@@ -477,7 +500,7 @@ namespace Meowdoku
 #if USE_AVNADS_PLUGIN
             levelCompleteReported = false;
             levelFailedReported = false;
-            GameAnalyticsEvents.CustomLevelAnalysis(AnalyticsLevelNumber, LevelState.Restarted, LevelMode.DEFAULT);
+            GameAnalyticsEvents.CustomLevelAnalysis(AnalyticsLevelNumber, LevelState.Restarted);
 #endif
             undoStack.Clear();
             Refresh();
