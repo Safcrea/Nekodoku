@@ -535,6 +535,14 @@ PrefabInstance:
       propertyPath: initializeOnStart
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6789580931789281, guid: 534a5ce4fee94954d8770aee654e532e, type: 3}
+      propertyPath: _showRateUsOnLevel
+      value: 20
+      objectReference: {fileID: 0}
+    - target: {fileID: 6789580931789281, guid: 534a5ce4fee94954d8770aee654e532e, type: 3}
+      propertyPath: _showNotificationOnLevel
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 331271937313237951, guid: 534a5ce4fee94954d8770aee654e532e, type: 3}
       propertyPath: m_fontSize
       value: 70.3
@@ -558,6 +566,14 @@ PrefabInstance:
     - target: {fileID: 1908565284651861166, guid: 534a5ce4fee94954d8770aee654e532e, type: 3}
       propertyPath: interstitialShowMode
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 1908565284651861166, guid: 534a5ce4fee94954d8770aee654e532e, type: 3}
+      propertyPath: useDelayBeforeFirstAd
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 1908565284651861166, guid: 534a5ce4fee94954d8770aee654e532e, type: 3}
+      propertyPath: delayBeforeFirstAdSeconds
+      value: 40
       objectReference: {fileID: 0}
     - target: {fileID: 2626049695770459507, guid: 534a5ce4fee94954d8770aee654e532e, type: 3}
       propertyPath: m_SizeDelta.x
@@ -638,6 +654,10 @@ PrefabInstance:
     - target: {fileID: 4573800767530852714, guid: 534a5ce4fee94954d8770aee654e532e, type: 3}
       propertyPath: m_fontSize
       value: 34.1
+      objectReference: {fileID: 0}
+    - target: {fileID: 4631529436609714508, guid: 534a5ce4fee94954d8770aee654e532e, type: 3}
+      propertyPath: m_Enabled
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4631529436609714508, guid: 534a5ce4fee94954d8770aee654e532e, type: 3}
       propertyPath: enableAdMobCMP
@@ -1087,7 +1107,7 @@ MonoBehaviour:
   animationLibrary: {fileID: 11400000, guid: 8d376323b4a604294a78a54f0b0e7b1c, type: 2}
   playOnAwake: 1
   playOnEnable: 0
-  autoPlayAnimation: Cat4
+  autoPlayAnimation: LSCat
   restartAutoPlay: 1
   useUnscaledTime: 1
   overrideFrameRate: 1
@@ -1275,7 +1295,7 @@ MonoBehaviour:
   animationLibrary: {fileID: 11400000, guid: 8d376323b4a604294a78a54f0b0e7b1c, type: 2}
   playOnAwake: 1
   playOnEnable: 0
-  autoPlayAnimation: Cat3
+  autoPlayAnimation: LSCat
   restartAutoPlay: 1
   useUnscaledTime: 1
   overrideFrameRate: 1
@@ -1674,7 +1694,7 @@ MonoBehaviour:
   animationLibrary: {fileID: 11400000, guid: 8d376323b4a604294a78a54f0b0e7b1c, type: 2}
   playOnAwake: 1
   playOnEnable: 0
-  autoPlayAnimation: Cat1
+  autoPlayAnimation: LSCat
   restartAutoPlay: 1
   useUnscaledTime: 1
   overrideFrameRate: 1
@@ -1771,7 +1791,7 @@ MonoBehaviour:
   animationLibrary: {fileID: 11400000, guid: 8d376323b4a604294a78a54f0b0e7b1c, type: 2}
   playOnAwake: 1
   playOnEnable: 0
-  autoPlayAnimation: Cat2
+  autoPlayAnimation: LSCat
   restartAutoPlay: 1
   useUnscaledTime: 1
   overrideFrameRate: 1
@@ -1868,7 +1888,7 @@ MonoBehaviour:
   animationLibrary: {fileID: 11400000, guid: 8d376323b4a604294a78a54f0b0e7b1c, type: 2}
   playOnAwake: 1
   playOnEnable: 0
-  autoPlayAnimation: Cat5
+  autoPlayAnimation: LSCat
   restartAutoPlay: 1
   useUnscaledTime: 1
   overrideFrameRate: 1

@@ -5,11 +5,15 @@ namespace Meowdoku
 {
     /// <summary>
     /// Owns the global free-use budget for each powerup (Reveal A Cat, Hint). No currency/economy system
-    /// exists yet - the configured counts are granted once when the manager initializes and are not refilled
-    /// on level load or retry.
+    /// exists yet - the configured counts are granted exactly once per install (persisted via
+    /// <see cref="PlayerPrefs"/>, not just in-memory) and are never refilled on level load, retry, or a
+    /// fresh app launch.
     /// </summary>
     public sealed class PowerupManager : MonoBehaviour
     {
+        private const string RevealCatUsesRemainingPlayerPrefsKey = "Nekodoku.PowerupManager.RevealCatUsesRemaining";
+        private const string HintUsesRemainingPlayerPrefsKey = "Nekodoku.PowerupManager.HintUsesRemaining";
+
         [FormerlySerializedAs("freeRevealCatUsesPerLevel")]
         [SerializeField] private int freeRevealCatUses = 1;
 
@@ -51,8 +55,24 @@ namespace Meowdoku
             }
 
             initialized = true;
-            revealCatUsesRemaining = Mathf.Max(0, freeRevealCatUses);
-            hintUsesRemaining = Mathf.Max(0, freeHintUses);
+            revealCatUsesRemaining = LoadOrGrant(RevealCatUsesRemainingPlayerPrefsKey, freeRevealCatUses);
+            hintUsesRemaining = LoadOrGrant(HintUsesRemainingPlayerPrefsKey, freeHintUses);
+        }
+
+        /// <summary>First-ever call for this key grants (and persists) the configured free-use count;
+        /// every call after that reads back whatever was last persisted, however low - this is what makes
+        /// the budget a one-time-per-install grant rather than something that quietly refills on relaunch.</summary>
+        private static int LoadOrGrant(string playerPrefsKey, int freeUses)
+        {
+            if (PlayerPrefs.HasKey(playerPrefsKey))
+            {
+                return Mathf.Max(0, PlayerPrefs.GetInt(playerPrefsKey));
+            }
+
+            int granted = Mathf.Max(0, freeUses);
+            PlayerPrefs.SetInt(playerPrefsKey, granted);
+            PlayerPrefs.Save();
+            return granted;
         }
 
         /// <summary>True (and consumes one use) if a free use was available. The caller should still let
@@ -65,6 +85,8 @@ namespace Meowdoku
             if (revealCatUsesRemaining > 0)
             {
                 revealCatUsesRemaining--;
+                PlayerPrefs.SetInt(RevealCatUsesRemainingPlayerPrefsKey, revealCatUsesRemaining);
+                PlayerPrefs.Save();
                 return true;
             }
 
@@ -80,6 +102,8 @@ namespace Meowdoku
             if (hintUsesRemaining > 0)
             {
                 hintUsesRemaining--;
+                PlayerPrefs.SetInt(HintUsesRemainingPlayerPrefsKey, hintUsesRemaining);
+                PlayerPrefs.Save();
                 return true;
             }
 

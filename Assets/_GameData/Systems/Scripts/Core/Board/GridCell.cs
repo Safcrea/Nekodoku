@@ -875,7 +875,7 @@ namespace Meowdoku
             bool isDoubleTap = eventData.clickCount >= 2 || (hasRecentTap && now - lastTapTime <= DoubleTapSeconds);
             hasRecentTap = false;
 
-            if (isDoubleTap)
+            if (isDoubleTap && inputHandler.CanCommitCat(Row, Column))
             {
                 inputHandler.CommitCat(Row, Column);
                 return;

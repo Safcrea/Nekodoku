@@ -69,7 +69,10 @@ If you change `LevelData.cs` or the game's puzzle rules, mirror the change in
   split; "Even split" resets it; each row's **Normalize** button dumps the
   current gap onto that row, so after hand-editing one row away from even you
   can fix the total by pressing Normalize on any *other* row without touching
-  the one you just set), and pick which cats start revealed in "Locked cats"
+  the one you just set). Use **Randomize constraints** to tell Randomize
+  counts things like "2 colors should have 4 cells each"; the remaining colors
+  get the remaining cells randomly while still summing to the board size. Pick
+  which cats start revealed in "Locked cats"
   (check exactly which ones, or set a count and press Randomize) — then press
   Generate. The counts must add up to exactly `size × size` — the Generate
   button stays disabled until they do (hover it for why). Deterministic — the

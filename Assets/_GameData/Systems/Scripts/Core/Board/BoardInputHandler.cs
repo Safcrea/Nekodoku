@@ -45,6 +45,11 @@ namespace Meowdoku
 
         public bool InputLocked => inputLocked || resultLocked;
 
+        public bool CanCommitCat(int row, int column)
+        {
+            return !InputLocked && gameManager != null && gameManager.CanCommitCatAt(row, column);
+        }
+
         public void Initialize(GameManager manager, BoardView board, GameplayScreen screen)
         {
             gameManager = manager;
@@ -90,7 +95,7 @@ namespace Meowdoku
 
         public void CommitCat(int row, int column)
         {
-            if (InputLocked || gameManager.IsLessonCommitBlocked)
+            if (!CanCommitCat(row, column))
             {
                 return;
             }
@@ -262,6 +267,11 @@ namespace Meowdoku
 
             lastCrossDragRow = row;
             lastCrossDragColumn = column;
+
+            if (!boardView.IsTutorialCrossAllowed(row, column))
+            {
+                return;
+            }
 
             PuzzleBoard board = gameManager.Board;
             if (!board.CanSetCross(row, column, crossDragPlacesCrosses))

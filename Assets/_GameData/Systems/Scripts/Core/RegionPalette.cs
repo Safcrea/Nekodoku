@@ -4,19 +4,22 @@ using UnityEngine;
 namespace Meowdoku
 {
     /// <summary>
-    /// Identifies a puzzle region color by name, independent of its RGB value.
+    /// Identifies a puzzle region color by name, independent of its RGB value. Named generically
+    /// (Color A..Color I) rather than by actual hue - the web level editor mirrors this same
+    /// generic naming for its own per-region art, so both sides can be re-themed by swapping
+    /// sprites/images without ever renaming anything that identifies a region.
     /// </summary>
     public enum RegionColorId
     {
-        Blush,
-        Mint,
-        Sky,
-        Peach,
-        Lavender,
-        Butter,
-        Terracotta,
-        Teal,
-        Lime
+        [InspectorName("Color A")] ColorA,
+        [InspectorName("Color B")] ColorB,
+        [InspectorName("Color C")] ColorC,
+        [InspectorName("Color D")] ColorD,
+        [InspectorName("Color E")] ColorE,
+        [InspectorName("Color F")] ColorF,
+        [InspectorName("Color G")] ColorG,
+        [InspectorName("Color H")] ColorH,
+        [InspectorName("Color I")] ColorI
     }
 
     /// <summary>Pairs a region's identity with the sprite drawn on that region's cells. Editable in the Inspector.</summary>
@@ -40,15 +43,15 @@ namespace Meowdoku
         [SerializeField]
         private RegionSpriteEntry[] entries =
         {
-            new RegionSpriteEntry { Id = RegionColorId.Blush },
-            new RegionSpriteEntry { Id = RegionColorId.Mint },
-            new RegionSpriteEntry { Id = RegionColorId.Sky },
-            new RegionSpriteEntry { Id = RegionColorId.Peach },
-            new RegionSpriteEntry { Id = RegionColorId.Lavender },
-            new RegionSpriteEntry { Id = RegionColorId.Butter },
-            new RegionSpriteEntry { Id = RegionColorId.Terracotta },
-            new RegionSpriteEntry { Id = RegionColorId.Teal },
-            new RegionSpriteEntry { Id = RegionColorId.Lime }
+            new RegionSpriteEntry { Id = RegionColorId.ColorA },
+            new RegionSpriteEntry { Id = RegionColorId.ColorB },
+            new RegionSpriteEntry { Id = RegionColorId.ColorC },
+            new RegionSpriteEntry { Id = RegionColorId.ColorD },
+            new RegionSpriteEntry { Id = RegionColorId.ColorE },
+            new RegionSpriteEntry { Id = RegionColorId.ColorF },
+            new RegionSpriteEntry { Id = RegionColorId.ColorG },
+            new RegionSpriteEntry { Id = RegionColorId.ColorH },
+            new RegionSpriteEntry { Id = RegionColorId.ColorI }
         };
 
         public Sprite SpriteForRegion(int regionIndex)

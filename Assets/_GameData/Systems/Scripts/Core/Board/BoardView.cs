@@ -56,6 +56,7 @@ namespace Meowdoku
         private Vector3 boardRootRestScale = Vector3.one;
         private bool boardRootRestScaleCaptured;
         private bool tutorialRestrictionActive;
+        private bool tutorialInteractionEnabled = true;
 
         private void Awake()
         {
@@ -351,7 +352,14 @@ namespace Meowdoku
                 bool completedRequired = tutorialRequiredCells != null
                     && tutorialRequiredCells.Contains(coord)
                     && mark == CellMark.Cross;
-                cell.SetInteractable(!inputLocked && allowed);
+                // A revealed cat's cell is always shown undimmed (see GetTutorialDimMode below) even
+                // when it's outside the current sub-guide's allowed set - e.g. the row/column teach step
+                // deliberately excludes the cat's own cell from `allowed` since it can't be crossed. It
+                // must stay interactable to match that undimmed look: otherwise its raycasts are blocked
+                // and a drag gesture *starting* on that cell (a very natural place to start dragging down
+                // a column) never fires OnBeginDrag at all, silently swallowing the whole drag.
+                bool interactive = (allowed || revealedCat) && tutorialInteractionEnabled;
+                cell.SetInteractable(!inputLocked && interactive);
                 cell.SetTutorialDimMode(GetTutorialDimMode(tutorialRestrictionActive, allowed, completedRequired, revealedCat));
             }
         }
@@ -368,11 +376,41 @@ namespace Meowdoku
             tutorialRestrictionActive = true;
         }
 
+        /// <summary>
+        /// Independent of the allowed/dimmed cell set above - lets a caller keep the *next* target cell
+        /// looking correct (highlighted/undimmed) while still blocking all clicks until it's actually
+        /// ready to be tapped (e.g. until a hand guide has finished appearing/gliding onto it). Defaults
+        /// to enabled so callers that never touch this behave exactly as before.
+        /// </summary>
+        public void SetTutorialInteractionEnabled(bool enabled)
+        {
+            tutorialInteractionEnabled = enabled;
+        }
+
         public void ClearTutorialRestriction()
         {
             tutorialRestrictionActive = false;
             tutorialAllowedCells = null;
             tutorialRequiredCells = null;
+            tutorialInteractionEnabled = true;
+        }
+
+        /// <summary>
+        /// Mirrors the interactable check <see cref="RefreshVisuals"/> applies per cell, for
+        /// <see cref="BoardInputHandler"/> to gate an in-progress cross-drag. A drag's *start* cell is
+        /// naturally gated by that cell's own raycast target (blocked when non-interactable), but once a
+        /// drag is under way its hit-testing (<see cref="TryPointerToCell"/>) is a pure geometric lookup
+        /// with no idea about the tutorial restriction - so without this, a drag begun on a legitimately
+        /// allowed cell could glide onto a dimmed/blocked cell and cross it anyway.
+        /// </summary>
+        public bool IsTutorialCrossAllowed(int row, int column)
+        {
+            if (!tutorialRestrictionActive)
+            {
+                return true;
+            }
+
+            return tutorialInteractionEnabled && tutorialAllowedCells.Contains(new Coord(row, column));
         }
 
         /// <summary>

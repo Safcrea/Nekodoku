@@ -13,13 +13,22 @@ import {
 } from "./core/validator.js";
 import { generateLevelWithRegionSizes, defaultRegionSizes, defaultLockedCatCount } from "./core/generator.js";
 
-// Region colors mirror NekoGameController.RegionColors so painted boards read
-// the same here and in the game. Which of these a given region actually
-// displays as is a separate, purely-cosmetic layer - see
-// state.regionColorIndices/colorForRegion.
+// Positionally mirrors the C# side's RegionPalette/RegionColorId (Assets/_GameData/Systems/Scripts/
+// Core/RegionPalette.cs) so painted boards read the same here and in the game - index 0 here is
+// "Color A" there, index 1 is "Color B", etc. Only the array *position* is shared; these hex swatches
+// are this editor's own stand-in art and can be swapped for actual per-region images independently of
+// Unity's sprites, same as RegionColorId's names are independent of its sprites. Which of these a given
+// region actually displays as is a separate, purely-cosmetic layer - see state.regionColorIndices/colorForRegion.
 const REGION_COLORS = [
-    "#ffb7c2", "#abe0c4", "#9eccf5", "#ffd194", "#c9b5ed",
-    "#f5e88c", "#ed9e80", "#87d1d9", "#bde08f",
+    "#ffb7c2", // Color A
+    "#abe0c4", // Color B
+    "#9eccf5", // Color C
+    "#ffd194", // Color D
+    "#c9b5ed", // Color E
+    "#f5e88c", // Color F
+    "#ed9e80", // Color G
+    "#87d1d9", // Color H
+    "#bde08f", // Color I
 ];
 
 /** Identity mapping (region r -> palette color r) - the starting point every
@@ -47,6 +56,9 @@ const state = {
     placements: [],
     /** One cell-count target per color, edited in the Generate panel; must sum to size*size. */
     regionSizes: [],
+    /** Optional random-count recipe rows: "colors" regions should each get "cells" cells.
+     *  Randomize counts applies these to random colors, then distributes the remaining cells. */
+    countRules: [],
     /** Pre-generate config: which cats (by index) should start revealed. Fully
      *  explicit - an unchecked box means "not locked", generate is never told
      *  to silently pick its own default the way it does when this option is
@@ -91,6 +103,9 @@ const el = {
     seed: document.getElementById("seed-input"),
     randomSeedBtn: document.getElementById("random-seed-btn"),
     colorCountList: document.getElementById("color-count-list"),
+    countRuleList: document.getElementById("count-rule-list"),
+    countRuleStatus: document.getElementById("count-rule-status"),
+    addCountRuleBtn: document.getElementById("add-count-rule-btn"),
     cellTotalRow: document.getElementById("cell-total-row"),
     evenSplitBtn: document.getElementById("even-split-btn"),
     randomizeCountsBtn: document.getElementById("randomize-counts-btn"),
@@ -102,6 +117,7 @@ const el = {
     generateInfoPopover: document.getElementById("generate-info-popover"),
     palettePopover: document.getElementById("palette-popover"),
     palettePopoverGrid: document.getElementById("palette-popover-grid"),
+    toastStack: document.getElementById("toast-stack"),
     generateBtn: document.getElementById("generate-btn"),
     modeToolbar: document.getElementById("mode-toolbar"),
     regionsControls: document.getElementById("regions-controls"),
@@ -113,9 +129,6 @@ const el = {
     statusRow: document.getElementById("status-row"),
     issueList: document.getElementById("issue-list"),
     autoPlaceBtn: document.getElementById("auto-place-btn"),
-    fileMenu: document.getElementById("file-menu"),
-    fileMenuBtn: document.getElementById("file-menu-btn"),
-    fileMenuDropdown: document.getElementById("file-menu-dropdown"),
     downloadBtn: document.getElementById("download-btn"),
     copyBtn: document.getElementById("copy-btn"),
     openFileBtn: document.getElementById("open-file-btn"),
@@ -133,6 +146,8 @@ const el = {
     libraryUnsupported: document.getElementById("library-unsupported"),
 };
 
+const TOAST_TIMEOUT_MS = 3600;
+
 // ---------- state helpers ----------
 
 function resetLevel(size) {
@@ -142,6 +157,7 @@ function resetLevel(size) {
     state.regions = Array.from({ length: size }, () => "0".repeat(size));
     state.placements = new Array(size).fill(null);
     state.regionSizes = defaultRegionSizes(size);
+    state.countRules = [];
     state.lockedCats = new Array(size).fill(false);
     state.lockRandomizeCount = defaultLockedCatCount(size);
     state.regionColorIndices = defaultRegionColorIndices(size);
@@ -170,6 +186,7 @@ function setSize(newSize) {
     // A different board size invalidates any custom split, so start fresh
     // from an even one rather than trying to rescale it.
     state.regionSizes = defaultRegionSizes(newSize);
+    state.countRules = [];
     // Same for the locked-cat picker - old picks may no longer be valid indices.
     state.lockedCats = new Array(newSize).fill(false);
     state.lockRandomizeCount = defaultLockedCatCount(newSize);
@@ -245,14 +262,14 @@ function regionsAreInRange() {
     return state.regions.every((row) => [...row].every((digit) => Number(digit) < state.size));
 }
 
-/** Loads a parsed/generated level into the editor and replays the board intro. */
+/** Loads a parsed/generated level into the editor and replays the board intro. Deliberately does NOT
+ *  touch library.activeEntry itself - Generate re-rolling a library-loaded level's content (which also
+ *  assigns it a brand-new seed-derived id) is still "editing the same level slot", so it must keep the
+ *  link to the originating file alive or "Save to Library" has no file left to overwrite and silently
+ *  forks a second one. Callers that load something genuinely unrelated (Open file, New) are responsible
+ *  for clearing library.activeEntry themselves before/after calling this; loadLibraryEntry instead SETS
+ *  it right after, since that's the one call site that's establishing the link in the first place. */
 function applyLevelData(level) {
-    // Any load NOT going through loadLibraryEntry (Generate, Open file, Load
-    // from text) means whatever was previously loaded from the library is no
-    // longer what's on screen - clearing this here (single point of truth)
-    // stops "Save to Library" from overwriting an unrelated file.
-    // loadLibraryEntry re-sets this immediately after calling applyLevelData.
-    library.activeEntry = null;
     state.title = level.title;
     state.id = level.id;
     state.size = level.size;
@@ -291,9 +308,45 @@ function renderAll() {
     renderSwatches();
     renderCatRow();
     renderColorCounts();
+    renderCountRules();
     renderLockCatList();
     renderBoard();
     renderValidation();
+}
+
+function showToast(message, tone = "ok") {
+    const toast = document.createElement("div");
+    toast.className = `toast ${tone}`;
+    toast.setAttribute("role", tone === "danger" ? "alert" : "status");
+
+    const dot = document.createElement("span");
+    dot.className = "toast-dot";
+
+    const text = document.createElement("span");
+    text.className = "toast-message";
+    text.textContent = message;
+
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "toast-close";
+    close.setAttribute("aria-label", "Dismiss notification");
+    close.textContent = "x";
+
+    let dismissed = false;
+    const dismiss = () => {
+        if (dismissed) {
+            return;
+        }
+
+        dismissed = true;
+        toast.classList.add("leaving");
+        window.setTimeout(() => toast.remove(), 180);
+    };
+
+    close.addEventListener("click", dismiss);
+    toast.append(dot, text, close);
+    el.toastStack.append(toast);
+    window.setTimeout(dismiss, TOAST_TIMEOUT_MS);
 }
 
 function renderSwatches() {
@@ -390,6 +443,76 @@ function renderColorCounts() {
     renderCellTotal();
 }
 
+function renderCountRules() {
+    el.countRuleList.replaceChildren();
+    state.countRules.forEach((rule, index) => {
+        const row = document.createElement("div");
+        row.className = "count-rule-row";
+        row.style.animationDelay = `${index * 28}ms`;
+
+        const colorsInput = document.createElement("input");
+        colorsInput.type = "number";
+        colorsInput.min = "1";
+        colorsInput.max = String(state.size);
+        colorsInput.value = String(rule.colors);
+        colorsInput.title = "How many colors";
+        colorsInput.addEventListener("input", () => {
+            rule.colors = clampInt(colorsInput.value, 1, state.size);
+            updateCountRuleStatus();
+        });
+
+        const colorsLabel = document.createElement("span");
+        colorsLabel.textContent = "colors";
+
+        const cellsInput = document.createElement("input");
+        cellsInput.type = "number";
+        cellsInput.min = "1";
+        cellsInput.max = String(state.size * state.size);
+        cellsInput.value = String(rule.cells);
+        cellsInput.title = "Cells per color";
+        cellsInput.addEventListener("input", () => {
+            rule.cells = clampInt(cellsInput.value, 1, state.size * state.size);
+            updateCountRuleStatus();
+        });
+
+        const cellsLabel = document.createElement("span");
+        cellsLabel.textContent = "cells each";
+
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "btn small count-rule-remove";
+        removeBtn.textContent = "Remove";
+        removeBtn.addEventListener("click", () => {
+            state.countRules.splice(index, 1);
+            renderCountRules();
+        });
+
+        row.append(colorsInput, colorsLabel, cellsInput, cellsLabel, removeBtn);
+        el.countRuleList.append(row);
+    });
+
+    updateCountRuleStatus();
+}
+
+function updateCountRuleStatus() {
+    const plan = buildCountRulePlan(state.size);
+    el.countRuleStatus.textContent = countRuleStatusText(plan);
+    el.countRuleStatus.classList.toggle("danger", plan.errors.length > 0);
+    renderCellTotal();
+}
+
+function countRuleStatusText(plan) {
+    if (plan.errors.length > 0) {
+        return plan.errors[0];
+    }
+
+    if (plan.rules.length === 0) {
+        return "No constraints: Randomize counts will freely split all colors.";
+    }
+
+    return `${plan.fixedColors} fixed color${plan.fixedColors === 1 ? "" : "s"}, ${plan.freeColors} free color${plan.freeColors === 1 ? "" : "s"}, ${plan.freeCells} free cell${plan.freeCells === 1 ? "" : "s"}.`;
+}
+
 /** Opens the shared palette popover next to whichever swatch was clicked,
  *  populated with every palette color so the user can pick which one this
  *  region should display as - out of the full 9-color palette, not just the
@@ -443,11 +566,17 @@ function renderCellTotal() {
     // The Randomizer toggle overwrites regionSizes with a valid split right
     // before generating (see el.generateBtn's click handler), so a mismatch
     // shouldn't block the button while it's checked.
-    const blocked = mismatched && !el.randomizerToggle.checked;
+    const rulePlan = buildCountRulePlan(state.size);
+    const ruleBlocked = el.randomizerToggle.checked && rulePlan.errors.length > 0;
+    const blocked = (mismatched && !el.randomizerToggle.checked) || ruleBlocked;
     el.generateBtn.disabled = blocked;
-    el.generateBtn.title = blocked
-        ? `Color cell counts must add up to exactly ${target} (currently ${total}) before you can generate - edit a row, press its Normalize button, or turn on "randomize counts & locked cats before generating".`
-        : "";
+    if (ruleBlocked) {
+        el.generateBtn.title = rulePlan.errors[0];
+    } else {
+        el.generateBtn.title = blocked
+            ? `Color cell counts must add up to exactly ${target} (currently ${total}) before you can generate - edit a row, press its Normalize button, or turn on "randomize counts & locked cats before generating".`
+            : "";
+    }
 }
 
 /** Pre-generate locked-cat picker: one checkbox per cat (explicit, fully
@@ -817,6 +946,15 @@ function randomSeed() {
     return Math.random().toString(36).slice(2, 8);
 }
 
+function clampInt(value, min, max) {
+    const parsed = Math.floor(Number(value));
+    if (!Number.isFinite(parsed)) {
+        return min;
+    }
+
+    return Math.max(min, Math.min(max, parsed));
+}
+
 /** Fisher-Yates shuffle of [0, count) - used by the Randomize locked-cats button. */
 function shuffledIndices(count) {
     const indices = Array.from({ length: count }, (_, i) => i);
@@ -828,15 +966,63 @@ function shuffledIndices(count) {
     return indices;
 }
 
-/** Random per-color split summing to size*size: every color starts at its
- *  required minimum of 1 cell, then the remaining cells are thrown one at a
- *  time at a random color - always sums exactly right, unlike naive
- *  independent-random-then-normalize approaches. */
+function buildCountRulePlan(size) {
+    const totalCells = size * size;
+    const rules = state.countRules
+        .map((rule) => ({
+            colors: clampInt(rule.colors, 1, size),
+            cells: clampInt(rule.cells, 1, totalCells),
+        }))
+        .filter((rule) => rule.colors > 0);
+
+    const fixedColors = rules.reduce((sum, rule) => sum + rule.colors, 0);
+    const fixedCells = rules.reduce((sum, rule) => sum + rule.colors * rule.cells, 0);
+    const freeColors = size - fixedColors;
+    const freeCells = totalCells - fixedCells;
+    const errors = [];
+
+    if (fixedColors > size) {
+        errors.push(`Count constraints use ${fixedColors} colors, but this board only has ${size}.`);
+    } else if (freeCells < freeColors) {
+        errors.push(`Count constraints leave ${freeCells} cells for ${freeColors} free colors; each free color needs at least 1.`);
+    } else if (freeColors === 0 && freeCells !== 0) {
+        errors.push(`Count constraints use all ${size} colors but add up to ${fixedCells} / ${totalCells} cells.`);
+    }
+
+    return { rules, fixedColors, fixedCells, freeColors, freeCells, errors };
+}
+
+/** Random per-color split summing to size*size. Optional count rules reserve
+ *  random colors at fixed sizes first: e.g. "2 colors, 4 cells each", then
+ *  the remaining cells are distributed across the remaining colors. */
 function randomRegionSizes(size) {
-    const total = size * size;
-    const counts = new Array(size).fill(1);
-    for (let i = 0; i < total - size; i++) {
-        counts[Math.floor(Math.random() * size)]++;
+    const plan = buildCountRulePlan(size);
+    if (plan.errors.length > 0) {
+        throw new Error(plan.errors[0]);
+    }
+
+    const counts = new Array(size).fill(null);
+    const order = shuffledIndices(size);
+    let cursor = 0;
+
+    for (const rule of plan.rules) {
+        for (let i = 0; i < rule.colors; i++) {
+            counts[order[cursor]] = rule.cells;
+            cursor++;
+        }
+    }
+
+    const freeRegions = order.slice(cursor);
+    if (freeRegions.length > 0) {
+        for (const region of freeRegions) {
+            counts[region] = 1;
+        }
+
+        let extras = size * size - counts.reduce((sum, count) => sum + count, 0);
+        while (extras > 0) {
+            counts[freeRegions[Math.floor(Math.random() * freeRegions.length)]]++;
+            extras--;
+        }
     }
 
     return counts;
@@ -862,8 +1048,21 @@ el.evenSplitBtn.addEventListener("click", () => {
 });
 
 el.randomizeCountsBtn.addEventListener("click", () => {
-    state.regionSizes = randomRegionSizes(state.size);
-    renderColorCounts();
+    try {
+        state.regionSizes = randomRegionSizes(state.size);
+        renderColorCounts();
+    } catch (error) {
+        alert(error.message);
+        renderCountRules();
+    }
+});
+
+el.addCountRuleBtn.addEventListener("click", () => {
+    state.countRules.push({
+        colors: 1,
+        cells: Math.max(1, Math.floor((state.size * state.size) / state.size)),
+    });
+    renderCountRules();
 });
 
 el.randomizerToggle.addEventListener("change", () => {
@@ -878,23 +1077,6 @@ el.generateInfoBtn.addEventListener("click", (event) => {
     el.generateInfoPopover.hidden = !el.generateInfoPopover.hidden;
 });
 
-// File menu (header): Download/Copy/Open file/Save to Library/New, tucked
-// behind one button instead of a permanent row - same open/close pattern as
-// the info popover above, plus auto-closing after any action is chosen.
-el.fileMenuBtn.addEventListener("click", (event) => {
-    event.stopPropagation();
-    const opening = el.fileMenuDropdown.hidden;
-    el.fileMenuDropdown.hidden = !opening;
-    el.fileMenuBtn.setAttribute("aria-expanded", String(opening));
-});
-
-el.fileMenuDropdown.addEventListener("click", (event) => {
-    if (event.target.closest(".file-menu-item")) {
-        el.fileMenuDropdown.hidden = true;
-        el.fileMenuBtn.setAttribute("aria-expanded", "false");
-    }
-});
-
 document.addEventListener("click", (event) => {
     if (!el.generateInfoPopover.hidden && !el.generateInfoPopover.contains(event.target) && event.target !== el.generateInfoBtn) {
         el.generateInfoPopover.hidden = true;
@@ -902,11 +1084,6 @@ document.addEventListener("click", (event) => {
 
     if (!el.palettePopover.hidden && !el.palettePopover.contains(event.target)) {
         el.palettePopover.hidden = true;
-    }
-
-    if (!el.fileMenuDropdown.hidden && !el.fileMenu.contains(event.target)) {
-        el.fileMenuDropdown.hidden = true;
-        el.fileMenuBtn.setAttribute("aria-expanded", "false");
     }
 });
 
@@ -917,8 +1094,6 @@ document.addEventListener("keydown", (event) => {
 
     el.generateInfoPopover.hidden = true;
     el.palettePopover.hidden = true;
-    el.fileMenuDropdown.hidden = true;
-    el.fileMenuBtn.setAttribute("aria-expanded", "false");
 });
 
 // Level Library drawer: a plain, persistent toggle (not an auto-closing
@@ -940,32 +1115,39 @@ el.randomizeLocksBtn.addEventListener("click", () => {
     renderLockCatList();
 });
 
-el.generateBtn.addEventListener("click", () => {
+el.generateBtn.addEventListener("click", async () => {
+    el.generateBtn.classList.add("working");
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+
     // The Randomizer toggle re-rolls both the color split and locked cats
     // right before generating, instead of using whatever's currently set -
     // and re-renders so the panel reflects what's about to be generated
     // rather than changing silently underneath the player.
-    if (el.randomizerToggle.checked) {
-        state.regionSizes = randomRegionSizes(state.size);
-        randomizeLockedCats();
-        renderColorCounts();
-        renderLockCatList();
-    }
-
-    let seed = el.seed.value.trim();
-    if (seed === "") {
-        seed = randomSeed();
-        el.seed.value = seed;
-    }
-
-    const lockedRows = state.lockedCats
-        .map((locked, index) => (locked ? index : -1))
-        .filter((index) => index >= 0);
-
     try {
-        applyLevelData(generateLevelWithRegionSizes(seed, state.size, state.regionSizes.slice(), { lockedRows }));
+        if (el.randomizerToggle.checked) {
+            state.regionSizes = randomRegionSizes(state.size);
+            randomizeLockedCats();
+            renderColorCounts();
+            renderLockCatList();
+        }
+
+        let seed = el.seed.value.trim();
+        if (seed === "") {
+            seed = randomSeed();
+            el.seed.value = seed;
+        }
+
+        const lockedRows = state.lockedCats
+            .map((locked, index) => (locked ? index : -1))
+            .filter((index) => index >= 0);
+
+        const level = generateLevelWithRegionSizes(seed, state.size, state.regionSizes.slice(), { lockedRows });
+        applyLevelData(level);
+        showToast(`Generated ${level.title}.`);
     } catch (error) {
         alert(error.message);
+    } finally {
+        el.generateBtn.classList.remove("working");
     }
 });
 
@@ -984,6 +1166,7 @@ el.downloadBtn.addEventListener("click", () => {
     link.download = `${built.level.id}.json`;
     link.click();
     URL.revokeObjectURL(link.href);
+    showToast(`Downloaded ${built.level.id}.json.`);
 });
 
 el.copyBtn.addEventListener("click", async () => {
@@ -994,6 +1177,7 @@ el.copyBtn.addEventListener("click", async () => {
     }
 
     await navigator.clipboard.writeText(serializeLevel(built.level));
+    showToast("Copied level JSON to clipboard.");
 });
 
 el.openFileBtn.addEventListener("click", () => el.fileInput.click());
@@ -1001,7 +1185,11 @@ el.openFileBtn.addEventListener("click", () => el.fileInput.click());
 el.fileInput.addEventListener("change", async () => {
     const file = el.fileInput.files?.[0];
     if (file) {
-        importJson(await file.text());
+        const level = importJson(await file.text());
+        if (level) {
+            showToast(`Opened ${level.title}.`);
+        }
+
         el.fileInput.value = "";
     }
 });
@@ -1013,13 +1201,14 @@ el.newBtn.addEventListener("click", () => {
         pendingIntro = true;
         renderAll();
         renderLibrary();
+        showToast("Started a new level.");
     }
 });
 
 function importJson(text) {
     if (text.trim() === "") {
         alert("That file is empty.");
-        return;
+        return null;
     }
 
     let level;
@@ -1027,15 +1216,20 @@ function importJson(text) {
         level = parseLevelJson(text);
     } catch (error) {
         alert(error.message);
-        return;
+        return null;
     }
 
     if (level.size < MIN_SIZE || level.size > MAX_SIZE) {
         alert(`This editor supports sizes ${MIN_SIZE}-${MAX_SIZE}; the file has size ${level.size}.`);
-        return;
+        return null;
     }
 
+    // Opening a file from disk is a genuinely different level from whatever the library drawer had
+    // active, even if it happens to be the same JSON by coincidence - clear the link explicitly rather
+    // than relying on applyLevelData to do it (Generate deliberately does not, see its comment).
+    library.activeEntry = null;
     applyLevelData(level);
+    return level;
 }
 
 // ---------- level library ----------
@@ -1088,6 +1282,7 @@ async function openLibraryFolder() {
     idbSetHandle(handle).catch(() => {}); // best-effort persistence, not required to work
     el.libraryReconnectBtn.hidden = true;
     await loadLibraryFromHandle();
+    showToast(`Opened library "${handle.name}".`);
 }
 
 /** (Re)reads every level in library.dirHandle plus levels-manifest.json (if present) and
@@ -1162,6 +1357,7 @@ async function saveLibraryOrder() {
 
     library.manifestDirty = false;
     renderLibrary();
+    showToast("Saved library order.");
 }
 
 /** The other half of "edit levels in the level editor and it reflects in Unity": writes the
@@ -1187,7 +1383,9 @@ async function saveToLibrary() {
         await writable.write(text);
         await writable.close();
         library.activeEntry.level = built.level;
+        const fileName = library.activeEntry.fileName;
         renderLibrary();
+        showToast(`Saved ${fileName} to library.`);
         return;
     }
 
@@ -1207,14 +1405,16 @@ async function saveToLibrary() {
         existing.fileHandle = fileHandle;
         existing.level = built.level;
         library.activeEntry = existing;
+        renderLibrary();
+        showToast(`Saved ${fileName} to library.`);
     } else {
         const entry = { fileStem, fileName, fileHandle, level: built.level };
         library.entries.push(entry);
         library.activeEntry = entry;
         library.manifestDirty = true;
+        renderLibrary();
+        showToast(`Added ${fileName} to library.`);
     }
-
-    renderLibrary();
 }
 
 function removeLibraryEntry(index) {
@@ -1225,6 +1425,9 @@ function removeLibraryEntry(index) {
 
     library.manifestDirty = true;
     renderLibrary();
+    if (removed) {
+        showToast(`Removed ${removed.fileName} from library order.`, "warn");
+    }
 }
 
 function loadLibraryEntry(index) {
@@ -1233,14 +1436,19 @@ function loadLibraryEntry(index) {
         return;
     }
 
-    applyLevelData(entry.level); // clears library.activeEntry itself first - see its comment
+    applyLevelData(entry.level);
     library.activeEntry = entry;
     renderLibrary();
+    showToast(`Loaded ${entry.fileName} from library.`);
 }
 
 function updateSaveToLibraryButton() {
     el.saveToLibraryBtn.disabled = !library.dirHandle;
-    el.saveToLibraryBtn.textContent = library.activeEntry ? "Save to Library" : "Add to Library";
+    // Icon-only button now - textContent would wipe out the svg, so the overwrite-vs-create
+    // distinction lives in the tooltip/label instead.
+    const label = library.activeEntry ? "Save to Library" : "Add to Library";
+    el.saveToLibraryBtn.title = label;
+    el.saveToLibraryBtn.setAttribute("aria-label", label);
 }
 
 let libraryDragIndex = null;
@@ -1315,6 +1523,9 @@ function renderLibrary() {
         const li = document.createElement("li");
         li.className = "library-item" + (entry === library.activeEntry ? " active" : "");
         li.draggable = true;
+        // The filename used to sit in its own row-cropping column fighting the number for space;
+        // it's still available on hover for anyone who needs to confirm which file this is.
+        li.title = entry.fileName;
 
         const handleSpan = document.createElement("span");
         handleSpan.className = "library-drag-handle";
@@ -1327,10 +1538,6 @@ function renderLibrary() {
         number.className = "library-item-number";
         number.textContent = `Level ${index + 1}`;
 
-        const meta = document.createElement("span");
-        meta.className = "library-item-meta";
-        meta.textContent = entry.fileName;
-
         const removeBtn = document.createElement("button");
         removeBtn.type = "button";
         removeBtn.className = "btn small";
@@ -1341,7 +1548,7 @@ function renderLibrary() {
             removeLibraryEntry(index);
         });
 
-        li.append(handleSpan, number, meta, removeBtn);
+        li.append(handleSpan, number, removeBtn);
         li.addEventListener("click", () => loadLibraryEntry(index));
         attachLibraryDragHandlers(li, index);
         el.libraryList.append(li);
@@ -1382,6 +1589,7 @@ el.libraryOpenBtn.addEventListener("click", async () => {
         await openLibraryFolder();
     } catch (error) {
         if (error.name !== "AbortError") {
+            showToast(`Couldn't open library: ${error.message}`, "danger");
             alert(`Couldn't open that folder: ${error.message}`);
         }
     }
@@ -1397,18 +1605,26 @@ el.libraryReconnectBtn.addEventListener("click", async () => {
         if (permission === "granted") {
             el.libraryReconnectBtn.hidden = true;
             await loadLibraryFromHandle();
+            showToast(`Reconnected library "${library.dirHandle.name}".`);
         }
     } catch (error) {
+        showToast(`Couldn't reconnect library: ${error.message}`, "danger");
         alert(`Couldn't reconnect: ${error.message}`);
     }
 });
 
 el.librarySaveOrderBtn.addEventListener("click", () => {
-    saveLibraryOrder().catch((error) => alert(`Couldn't save library order: ${error.message}`));
+    saveLibraryOrder().catch((error) => {
+        showToast(`Couldn't save library order: ${error.message}`, "danger");
+        alert(`Couldn't save library order: ${error.message}`);
+    });
 });
 
 el.saveToLibraryBtn.addEventListener("click", () => {
-    saveToLibrary().catch((error) => alert(`Couldn't save to library: ${error.message}`));
+    saveToLibrary().catch((error) => {
+        showToast(`Couldn't save to library: ${error.message}`, "danger");
+        alert(`Couldn't save to library: ${error.message}`);
+    });
 });
 
 // ---------- theme ----------

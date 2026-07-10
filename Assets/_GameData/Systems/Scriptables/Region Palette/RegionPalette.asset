@@ -14,20 +14,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Meowdoku.RegionPalette
   entries:
   - Id: 0
-    Sprite: {fileID: 21300000, guid: 23bef6b154add492b97009ec63faf129, type: 3}
+    Sprite: {fileID: 21300000, guid: f23c8204cc75d4e6d8e14649380e7a34, type: 3}
   - Id: 1
-    Sprite: {fileID: 21300000, guid: ee07e9d8d4fb0459c9c95886ca90211f, type: 3}
+    Sprite: {fileID: 21300000, guid: ba84a640490614f21adf2298a5dee4b5, type: 3}
   - Id: 2
-    Sprite: {fileID: 21300000, guid: 42f26bf91daef4148a3eb63e4cda5b76, type: 3}
+    Sprite: {fileID: 21300000, guid: 321c19a5f35664bd187c903d8a5f4b80, type: 3}
   - Id: 3
-    Sprite: {fileID: 21300000, guid: ee178a99e7add472b89adba14fcb920c, type: 3}
+    Sprite: {fileID: 21300000, guid: 23cd30d8323ea480bb50fc01a36de239, type: 3}
   - Id: 4
-    Sprite: {fileID: 21300000, guid: 32110f448d9244fa19304d7360a82d4f, type: 3}
+    Sprite: {fileID: 21300000, guid: 930d92fdf273a49488864349c914935f, type: 3}
   - Id: 5
-    Sprite: {fileID: 21300000, guid: f07205e3ddba14cd6a6a7077bbde2368, type: 3}
+    Sprite: {fileID: 21300000, guid: 7758d83476de44585a31e55a0091deb5, type: 3}
   - Id: 6
-    Sprite: {fileID: 21300000, guid: 542778929002b4551aa36e6d129adc0e, type: 3}
+    Sprite: {fileID: 21300000, guid: f4e366474bce540d9912c12762dc53d5, type: 3}
   - Id: 7
-    Sprite: {fileID: 21300000, guid: 4221fba50decf41b4b774967ba6632f4, type: 3}
+    Sprite: {fileID: 21300000, guid: f88994a02e7b544b792c1e92b773d547, type: 3}
   - Id: 8
-    Sprite: {fileID: 21300000, guid: 9fdee8b46618c4921b446f1bfec9b6a2, type: 3}
+    Sprite: {fileID: 21300000, guid: e7e5cf3bf7e3840c2ab2f9ef5fd02ae8, type: 3}
