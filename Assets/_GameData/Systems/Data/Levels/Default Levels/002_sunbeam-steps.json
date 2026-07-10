@@ -1,39 +1,39 @@
 {
     "formatVersion": 1,
-    "id": "002_sunbeam-steps",
-    "title": "Sunbeam Steps",
+    "id": "slfbq2-5x5",
+    "title": "Shelf Print",
     "size": 5,
     "regions": [
-        "24403",
-        "24433",
-        "22333",
-        "23333",
-        "23133"
+        "10000",
+        "11110",
+        "11320",
+        "33333",
+        "33334"
     ],
     "cats": [
         {
             "row": 0,
-            "column": 3,
-            "locked": true
-        },
-        {
-            "row": 1,
-            "column": 1,
-            "locked": true
-        },
-        {
-            "row": 2,
-            "column": 4,
+            "column": 2,
             "locked": false
         },
         {
-            "row": 3,
+            "row": 1,
             "column": 0,
             "locked": false
         },
         {
+            "row": 2,
+            "column": 3,
+            "locked": false
+        },
+        {
+            "row": 3,
+            "column": 1,
+            "locked": false
+        },
+        {
             "row": 4,
-            "column": 2,
+            "column": 4,
             "locked": false
         }
     ]

@@ -1,19 +1,20 @@
 {
     "formatVersion": 1,
-    "id": "slfbq2-4x4",
-    "title": "Ribbon Cove",
-    "size": 4,
+    "id": "53shga-5x5",
+    "title": "Fuzzy Steps",
+    "size": 5,
     "regions": [
-        "2011",
-        "2221",
-        "2221",
-        "2231"
+        "20000",
+        "20110",
+        "21100",
+        "22300",
+        "22204"
     ],
     "cats": [
         {
             "row": 0,
             "column": 1,
-            "locked": false
+            "locked": true
         },
         {
             "row": 1,
@@ -28,6 +29,11 @@
         {
             "row": 3,
             "column": 2,
+            "locked": false
+        },
+        {
+            "row": 4,
+            "column": 4,
             "locked": false
         }
     ]

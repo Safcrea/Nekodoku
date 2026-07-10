@@ -1,40 +1,64 @@
 {
     "formatVersion": 1,
-    "id": "008_treat-map",
-    "title": "Treat Map",
-    "size": 5,
+    "id": "hassam-9x9",
+    "title": "Velvet Loft",
+    "size": 9,
     "regions": [
-        "33444",
-        "33000",
-        "31000",
-        "33322",
-        "33222"
+        "111114404",
+        "133111444",
+        "133122244",
+        "333662224",
+        "336622544",
+        "366225588",
+        "362222588",
+        "667725588",
+        "777555888"
     ],
     "cats": [
         {
             "row": 0,
-            "column": 2,
-            "locked": true
+            "column": 7,
+            "locked": false
         },
         {
             "row": 1,
-            "column": 4,
-            "locked": true
+            "column": 0,
+            "locked": false
         },
         {
             "row": 2,
-            "column": 1,
+            "column": 4,
             "locked": false
         },
         {
             "row": 3,
+            "column": 2,
+            "locked": true
+        },
+        {
+            "row": 4,
+            "column": 8,
+            "locked": false
+        },
+        {
+            "row": 5,
+            "column": 5,
+            "locked": true
+        },
+        {
+            "row": 6,
+            "column": 1,
+            "locked": false
+        },
+        {
+            "row": 7,
             "column": 3,
             "locked": false
         },
         {
-            "row": 4,
-            "column": 0,
-            "locked": false
+            "row": 8,
+            "column": 6,
+            "locked": true
         }
     ]
 }

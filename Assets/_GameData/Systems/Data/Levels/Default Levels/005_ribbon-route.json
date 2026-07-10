@@ -1,38 +1,44 @@
 {
     "formatVersion": 1,
-    "id": "005_ribbon-route",
-    "title": "Ribbon Route",
-    "size": 5,
+    "id": "slfbq2-6x6",
+    "title": "Laser Keys",
+    "size": 6,
     "regions": [
-        "13333",
-        "14333",
-        "44433",
-        "44442",
-        "40442"
+        "210111",
+        "211121",
+        "222222",
+        "352444",
+        "555444",
+        "555544"
     ],
     "cats": [
         {
             "row": 0,
-            "column": 3,
-            "locked": true
-        },
-        {
-            "row": 1,
-            "column": 0,
-            "locked": true
-        },
-        {
-            "row": 2,
             "column": 2,
             "locked": false
         },
         {
+            "row": 1,
+            "column": 5,
+            "locked": false
+        },
+        {
+            "row": 2,
+            "column": 3,
+            "locked": false
+        },
+        {
             "row": 3,
-            "column": 4,
+            "column": 0,
             "locked": false
         },
         {
             "row": 4,
+            "column": 4,
+            "locked": false
+        },
+        {
+            "row": 5,
             "column": 1,
             "locked": false
         }
