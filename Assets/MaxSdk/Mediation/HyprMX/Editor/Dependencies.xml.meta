@@ -1,8 +1,8 @@
 fileFormatVersion: 2
-guid: 746da98302dc0402aaa37e8f7bd97e77
+guid: 1d2e714409297495f810bf46ddacdeb1
 labels:
 - al_max
-- al_max_export_path-MaxSdk/AppLovin/Editor/Dependencies.xml
+- al_max_export_path-MaxSdk/Mediation/HyprMX/Editor/Dependencies.xml
 TextScriptImporter:
   externalObjects: {}
   userData: 

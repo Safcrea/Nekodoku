@@ -1,6 +1,10 @@
-﻿<?xml version="1.0" encoding="utf-8" standalone="yes"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <dependencies>
     <androidPackages>
-        <androidPackage spec="com.google.android.ump:user-messaging-platform:4.0.0" />
+        <androidPackage spec="com.applovin:applovin-sdk:13.5.1" />
+        <androidPackage spec="com.google.android.ump:user-messaging-platform:2.1.0" />
     </androidPackages>
+    <iosPods>
+        <iosPod name="AppLovinSDK" version="13.5.1" />
+    </iosPods>
 </dependencies>
