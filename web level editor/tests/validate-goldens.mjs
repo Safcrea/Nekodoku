@@ -12,10 +12,14 @@ import { findStructuralIssues, countLegalSolutions } from "../js/core/validator.
 
 const levelsDir = path.resolve(
     path.dirname(fileURLToPath(import.meta.url)),
-    "../../Assets/_GameData/Systems/Data/Levels"
+    "../../Assets/_GameData/Systems/Data/Levels/Default Levels"
 );
 
-const files = (await readdir(levelsDir)).filter((name) => name.endsWith(".json")).sort();
+// levels-manifest.json (the shared ordering manifest read by the Unity-side
+// sync tool) lives in this same folder but isn't itself a level.
+const files = (await readdir(levelsDir))
+    .filter((name) => name.endsWith(".json") && name !== "levels-manifest.json")
+    .sort();
 if (files.length === 0) {
     console.error(`No level JSON files found in ${levelsDir}. Run the Unity exporter first.`);
     process.exit(1);

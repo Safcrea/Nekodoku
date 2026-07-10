@@ -1,4 +1,7 @@
 using System;
+#if USE_AVNADS_PLUGIN
+using AVN.AdsPlugin.Controllers;
+#endif
 using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
@@ -8,12 +11,12 @@ namespace Meowdoku
     /// <summary>
     /// The two powerup buttons (Reveal A Cat, Hint), each with a simple available-dot/ad-icon indicator
     /// instead of a use count - the dot shows while a free use remains, the ad icon shows once exhausted
-    /// (the future rewarded-ad unlock, see <see cref="PowerupManager"/>, hangs off that same state).
+    /// and routes clicks through the rewarded-ad flow.
     /// The whole bar fades in/out via <see cref="canvasGroup"/> rather than snapping - shown only while
     /// gameplay is actually running (hidden during the tutorial lesson and while the level is failed or
-    /// already solved). Raises <see cref="RevealCatRequested"/>/<see cref="HintRequested"/> when clicked -
-    /// GameManager subscribes to both in Start() and owns the actual reveal/hint logic, same separation
-    /// as <see cref="LevelFailedScreen"/>'s RetryRequested/ExtraLifeRequested.
+    /// already solved). Raises free/rewarded request events when clicked - GameManager subscribes in
+    /// Start() and owns the actual reveal/hint logic, same separation as
+    /// <see cref="LevelFailedScreen"/>'s RetryRequested/ExtraLifeRequested.
     /// </summary>
     public sealed class PowerupBar : MonoBehaviour
     {
@@ -30,10 +33,14 @@ namespace Meowdoku
         [SerializeField] private GameObject hintAdIcon;
 
         private bool targetVisible = true;
+        private bool revealCatHasFreeUse = true;
+        private bool hintHasFreeUse = true;
         private Tween visibilityTween;
 
         public event Action RevealCatRequested;
         public event Action HintRequested;
+        public event Action RewardedRevealCatRequested;
+        public event Action RewardedHintRequested;
 
         private void Awake()
         {
@@ -41,9 +48,7 @@ namespace Meowdoku
             {
                 revealCatButton.onClick.AddListener(() =>
                 {
-                    GameHaptics.Selection();
-                    SoundManager.PlaySound(SFX.ButtonClick);
-                    RevealCatRequested?.Invoke();
+                    HandlePowerupClick(revealCatHasFreeUse, RevealCatRequested, RewardedRevealCatRequested);
                 });
             }
 
@@ -51,9 +56,7 @@ namespace Meowdoku
             {
                 hintButton.onClick.AddListener(() =>
                 {
-                    GameHaptics.Selection();
-                    SoundManager.PlaySound(SFX.ButtonClick);
-                    HintRequested?.Invoke();
+                    HandlePowerupClick(hintHasFreeUse, HintRequested, RewardedHintRequested);
                 });
             }
         }
@@ -63,9 +66,29 @@ namespace Meowdoku
         /// available-dot/ad-icon per button and whether the whole bar is faded in or out.</summary>
         public void Refresh(int revealCatUsesRemaining, int hintUsesRemaining, bool active)
         {
+            revealCatHasFreeUse = revealCatUsesRemaining > 0;
+            hintHasFreeUse = hintUsesRemaining > 0;
             SetButtonState(revealCatAvailableDot, revealCatAdIcon, revealCatUsesRemaining);
             SetButtonState(hintAvailableDot, hintAdIcon, hintUsesRemaining);
             SetVisible(active);
+        }
+
+        private static void HandlePowerupClick(bool hasFreeUse, Action freeUseRequested, Action rewardedUseRequested)
+        {
+            GameHaptics.Selection();
+            SoundManager.PlaySound(SFX.ButtonClick);
+
+            if (hasFreeUse)
+            {
+                freeUseRequested?.Invoke();
+                return;
+            }
+
+#if USE_AVNADS_PLUGIN
+            AVNPlugin.DTInstance?.ShowRewardedAd(() => rewardedUseRequested?.Invoke());
+#else
+            rewardedUseRequested?.Invoke();
+#endif
         }
 
         private static void SetButtonState(GameObject availableDot, GameObject adIcon, int usesRemaining)

@@ -14,13 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SoundLibrary
   _entries:
   - id: 1
-    clip: {fileID: 8300000, guid: cf6c0e7fbef9449c98a0cdb5ea0c4d9f, type: 3}
+    clip: {fileID: 8300000, guid: 29bde6326b4c34ad8a12da475f79b50a, type: 3}
     volume: 1
   - id: 2
     clip: {fileID: 8300000, guid: 77f0ce71648dc446e8f78919e9dff09c, type: 3}
     volume: 1
   - id: 3
-    clip: {fileID: 8300000, guid: 19f89c6e740e7447f9e12a8310d3e973, type: 3}
+    clip: {fileID: 8300000, guid: e92502ff199b149fd9fe1dc2b03edede, type: 3}
     volume: 1
   - id: 4
     clip: {fileID: 8300000, guid: 724131bc8a7f34041bb9f1701f0cb58d, type: 3}
@@ -39,8 +39,14 @@ MonoBehaviour:
     volume: 1
   - id: 9
     clip: {fileID: 8300000, guid: 52320e590bf774734a288886eba557ba, type: 3}
-    volume: 1
+    volume: 0.5
   - id: 10
     clip: {fileID: 8300000, guid: fe0b1f9aeb45b41b089175aeeabd5d95, type: 3}
     volume: 1
-  _musicEntries: []
+  - id: 11
+    clip: {fileID: 8300000, guid: a97b60ea1c1a8491288bd304c6205b74, type: 3}
+    volume: 0.5
+  _musicEntries:
+  - id: 1
+    clip: {fileID: 8300000, guid: ee88316df7de14c599d20d921d9575c8, type: 3}
+    volume: 0.4

@@ -26,6 +26,17 @@
             <button data-theme-choice="auto">&#10022; Auto</button>
             <button data-theme-choice="dark">&#9790; Dark</button>
         </div>
+        <div class="file-menu" id="file-menu">
+            <button class="btn" id="file-menu-btn" type="button" aria-haspopup="true" aria-expanded="false">File &#9662;</button>
+            <div class="file-menu-dropdown" id="file-menu-dropdown" hidden>
+                <button class="file-menu-item" id="download-btn">&#8595; Download</button>
+                <button class="file-menu-item" id="copy-btn">Copy</button>
+                <button class="file-menu-item" id="open-file-btn">Open file&hellip;</button>
+                <button class="file-menu-item" id="save-to-library-btn" disabled>Save to Library</button>
+                <button class="file-menu-item" id="new-btn">New</button>
+            </div>
+            <input type="file" id="file-input" accept=".json,application/json" hidden />
+        </div>
     </header>
 
     <main>
@@ -64,16 +75,7 @@
                     <p class="hint">Pick a cat, then click its cell. Click a placed cat to remove it.</p>
                 </div>
             </section>
-        </div>
 
-        <section class="card">
-            <div class="micro-label"><span class="glyph">&#8862;</span> Board</div>
-            <div class="board-wrap">
-                <div class="board" id="board"></div>
-            </div>
-        </section>
-
-        <div class="stack">
             <section class="card">
                 <div class="micro-label"><span class="glyph">&#10003;</span> Validation</div>
                 <div class="status-row" id="status-row"></div>
@@ -82,20 +84,14 @@
                     <button class="btn small" id="auto-place-btn" title="Place all cats at the unique solution">Auto-place cats</button>
                 </div>
             </section>
-
-            <section class="card">
-                <div class="micro-label"><span class="glyph">&#8645;</span> File</div>
-                <textarea id="json-area" spellcheck="false" placeholder="Level JSON appears here. Paste JSON and press Load to import."></textarea>
-                <div class="btn-row file-actions">
-                    <button class="btn primary" id="download-btn">&#8595; Download</button>
-                    <button class="btn" id="copy-btn">Copy</button>
-                    <button class="btn" id="load-json-btn">Load from text</button>
-                    <button class="btn" id="open-file-btn">Open file&hellip;</button>
-                    <button class="btn" id="new-btn">New</button>
-                    <input type="file" id="file-input" accept=".json,application/json" hidden />
-                </div>
-            </section>
         </div>
+
+        <section class="card">
+            <div class="micro-label"><span class="glyph">&#8862;</span> Board</div>
+            <div class="board-wrap">
+                <div class="board" id="board"></div>
+            </div>
+        </section>
 
         <section class="card generate-row">
             <div class="micro-label"><span class="glyph">&#9860;</span> Generate</div>
@@ -157,6 +153,27 @@
 
     <div class="palette-popover" id="palette-popover" hidden>
         <div class="palette-popover-grid" id="palette-popover-grid"></div>
+    </div>
+
+    <div class="library-drawer" id="library-drawer">
+        <div class="card library-panel" id="library-panel" hidden>
+            <div class="micro-label"><span class="glyph">&#128193;</span> Level Library</div>
+
+            <div class="library-topbar">
+                <div class="library-status" id="library-status">No folder open.</div>
+                <div class="btn-row">
+                    <button class="btn small" id="library-reconnect-btn" hidden>Reconnect folder</button>
+                    <button class="btn small" id="library-open-btn">Open Level Library Folder&hellip;</button>
+                    <button class="btn small primary" id="library-save-order-btn" disabled>Save Library Order</button>
+                </div>
+            </div>
+
+            <ul class="library-list" id="library-list"></ul>
+
+            <p class="hint">Drag rows to reorder. Click a row to load it into the editor above, then use "Save to Library" (in the File menu, top-right) to write your edit back to that same file.</p>
+            <p class="hint" id="library-unsupported" hidden>Level Library needs a Chromium-based browser (Chrome/Edge) - the File System Access API isn't available here. The rest of the editor still works normally.</p>
+        </div>
+        <button class="library-tab" id="library-tab" type="button" aria-expanded="false" aria-controls="library-panel">Level Library</button>
     </div>
 
     <footer>same rules, same JSON as the game &mdash; drop saved files into Assets/_GameData/Systems/Data/Levels</footer>

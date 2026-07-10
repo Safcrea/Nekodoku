@@ -18,5 +18,6 @@ public enum SFX
     CrossUnmarked,
     CatGathered,
     StarPop,
-    BucketRise
+    BucketRise,
+    CatMeow
 }

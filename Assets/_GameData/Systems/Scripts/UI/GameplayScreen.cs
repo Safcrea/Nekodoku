@@ -66,7 +66,7 @@ namespace Meowdoku
 
         public void PlayCatCollected()
         {
-            catBasket.PlayCatCollected();
+            //* Nothing to play yet
         }
 
         /// <summary>Hides the whole HUD strip - used while the tutorial lesson board is active, since

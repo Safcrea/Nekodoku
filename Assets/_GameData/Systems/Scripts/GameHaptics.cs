@@ -26,6 +26,11 @@ namespace Meowdoku
 
         private static void Play(HapticTypes type)
         {
+            if (!GameSettings.HapticsEnabled)
+            {
+                return;
+            }
+
             Vibrations.Haptic(type);
         }
     }

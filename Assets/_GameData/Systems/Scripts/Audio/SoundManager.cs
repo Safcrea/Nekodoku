@@ -1,4 +1,5 @@
 using UnityEngine;
+using Meowdoku;
 
 /// <summary>
 /// Global SFX playback. Call SoundManager.PlaySound(SFX.CardDealt) from anywhere.
@@ -37,12 +38,12 @@ public class SoundManager : MonoBehaviour
         _musicSource.loop = true;
         _musicSource.playOnAwake = false;
 
-        //?GameSettings.MusicEnabledChanged += HandleMusicEnabledChanged;
+        GameSettings.MusicEnabledChanged += HandleMusicEnabledChanged;
     }
 
     private void OnDestroy()
     {
-        //?GameSettings.MusicEnabledChanged -= HandleMusicEnabledChanged;
+        GameSettings.MusicEnabledChanged -= HandleMusicEnabledChanged;
 
         if (Instance == this)
             Instance = null;
@@ -54,9 +55,10 @@ public class SoundManager : MonoBehaviour
 
     private void Play(SFX id)
     {
-        //?
-        // if (!GameSettings.SfxEnabled)
-        //     return;
+        if (!GameSettings.SfxEnabled)
+        {
+            return;
+        }
 
         if (_library == null) return;
 
@@ -77,11 +79,11 @@ public class SoundManager : MonoBehaviour
             _musicSource.clip = clip;
             _musicSource.volume = volume;
 
-            //? if (!GameSettings.MusicEnabled)
-            // {
-            //     _musicSource.Stop();
-            //     return;
-            // }
+            if (!GameSettings.MusicEnabled)
+            {
+                _musicSource.Pause();
+                return;
+            }
 
             _musicSource.Play();
         }

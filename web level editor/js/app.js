@@ -65,6 +65,24 @@ const state = {
     selectedCat: 0,
 };
 
+/** The Level Library panel's own state - deliberately separate from `state`
+ *  above, which represents only "the one level currently being edited".
+ *  The library's lifecycle (which folder is open, what order its levels are
+ *  in) is independent of whatever gets loaded into the editor at any moment. */
+const library = {
+    /** @type {FileSystemDirectoryHandle | null} */
+    dirHandle: null,
+    /** @type {{fileStem: string, fileName: string, fileHandle: FileSystemFileHandle, level: object}[]} */
+    entries: [],
+    /** Object reference into `entries` (not an index - stays correct across
+     *  reorders without any index-shifting math), or null if nothing loaded
+     *  into the editor right now came from the library. */
+    activeEntry: null,
+    /** True whenever entries[] no longer matches the on-disk manifest's order
+     *  (a reorder, add, or remove happened since the last Save Library Order). */
+    manifestDirty: false,
+};
+
 const el = {
     themeSwitch: document.getElementById("theme-switch"),
     id: document.getElementById("id-input"),
@@ -95,13 +113,24 @@ const el = {
     statusRow: document.getElementById("status-row"),
     issueList: document.getElementById("issue-list"),
     autoPlaceBtn: document.getElementById("auto-place-btn"),
-    jsonArea: document.getElementById("json-area"),
+    fileMenu: document.getElementById("file-menu"),
+    fileMenuBtn: document.getElementById("file-menu-btn"),
+    fileMenuDropdown: document.getElementById("file-menu-dropdown"),
     downloadBtn: document.getElementById("download-btn"),
     copyBtn: document.getElementById("copy-btn"),
-    loadJsonBtn: document.getElementById("load-json-btn"),
     openFileBtn: document.getElementById("open-file-btn"),
     fileInput: document.getElementById("file-input"),
+    saveToLibraryBtn: document.getElementById("save-to-library-btn"),
     newBtn: document.getElementById("new-btn"),
+    libraryDrawer: document.getElementById("library-drawer"),
+    libraryTab: document.getElementById("library-tab"),
+    libraryPanel: document.getElementById("library-panel"),
+    libraryStatus: document.getElementById("library-status"),
+    libraryReconnectBtn: document.getElementById("library-reconnect-btn"),
+    libraryOpenBtn: document.getElementById("library-open-btn"),
+    librarySaveOrderBtn: document.getElementById("library-save-order-btn"),
+    libraryList: document.getElementById("library-list"),
+    libraryUnsupported: document.getElementById("library-unsupported"),
 };
 
 // ---------- state helpers ----------
@@ -218,6 +247,12 @@ function regionsAreInRange() {
 
 /** Loads a parsed/generated level into the editor and replays the board intro. */
 function applyLevelData(level) {
+    // Any load NOT going through loadLibraryEntry (Generate, Open file, Load
+    // from text) means whatever was previously loaded from the library is no
+    // longer what's on screen - clearing this here (single point of truth)
+    // stops "Save to Library" from overwriting an unrelated file.
+    // loadLibraryEntry re-sets this immediately after calling applyLevelData.
+    library.activeEntry = null;
     state.title = level.title;
     state.id = level.id;
     state.size = level.size;
@@ -626,9 +661,6 @@ function renderValidation() {
         : solutions === 0
             ? "Auto-place needs a region layout with a legal solution first - this one has none yet."
             : "Auto-place needs exactly one legal solution first - this layout currently has 2+; keep painting until only one remains.";
-    if (document.activeElement !== el.jsonArea) {
-        el.jsonArea.value = built.level && issues.length === 0 ? serializeLevel(built.level) : "";
-    }
 }
 
 // ---------- board interaction ----------
@@ -846,6 +878,23 @@ el.generateInfoBtn.addEventListener("click", (event) => {
     el.generateInfoPopover.hidden = !el.generateInfoPopover.hidden;
 });
 
+// File menu (header): Download/Copy/Open file/Save to Library/New, tucked
+// behind one button instead of a permanent row - same open/close pattern as
+// the info popover above, plus auto-closing after any action is chosen.
+el.fileMenuBtn.addEventListener("click", (event) => {
+    event.stopPropagation();
+    const opening = el.fileMenuDropdown.hidden;
+    el.fileMenuDropdown.hidden = !opening;
+    el.fileMenuBtn.setAttribute("aria-expanded", String(opening));
+});
+
+el.fileMenuDropdown.addEventListener("click", (event) => {
+    if (event.target.closest(".file-menu-item")) {
+        el.fileMenuDropdown.hidden = true;
+        el.fileMenuBtn.setAttribute("aria-expanded", "false");
+    }
+});
+
 document.addEventListener("click", (event) => {
     if (!el.generateInfoPopover.hidden && !el.generateInfoPopover.contains(event.target) && event.target !== el.generateInfoBtn) {
         el.generateInfoPopover.hidden = true;
@@ -853,6 +902,11 @@ document.addEventListener("click", (event) => {
 
     if (!el.palettePopover.hidden && !el.palettePopover.contains(event.target)) {
         el.palettePopover.hidden = true;
+    }
+
+    if (!el.fileMenuDropdown.hidden && !el.fileMenu.contains(event.target)) {
+        el.fileMenuDropdown.hidden = true;
+        el.fileMenuBtn.setAttribute("aria-expanded", "false");
     }
 });
 
@@ -863,6 +917,17 @@ document.addEventListener("keydown", (event) => {
 
     el.generateInfoPopover.hidden = true;
     el.palettePopover.hidden = true;
+    el.fileMenuDropdown.hidden = true;
+    el.fileMenuBtn.setAttribute("aria-expanded", "false");
+});
+
+// Level Library drawer: a plain, persistent toggle (not an auto-closing
+// popover like the menus above) - it's a workspace panel you leave open
+// while working, not a transient menu.
+el.libraryTab.addEventListener("click", () => {
+    const opening = el.libraryPanel.hidden;
+    el.libraryPanel.hidden = !opening;
+    el.libraryTab.setAttribute("aria-expanded", String(opening));
 });
 
 el.lockCountInput.addEventListener("input", () => {
@@ -931,10 +996,6 @@ el.copyBtn.addEventListener("click", async () => {
     await navigator.clipboard.writeText(serializeLevel(built.level));
 });
 
-el.loadJsonBtn.addEventListener("click", () => {
-    importJson(el.jsonArea.value);
-});
-
 el.openFileBtn.addEventListener("click", () => el.fileInput.click());
 
 el.fileInput.addEventListener("change", async () => {
@@ -948,14 +1009,16 @@ el.fileInput.addEventListener("change", async () => {
 el.newBtn.addEventListener("click", () => {
     if (confirm("Discard the current level and start fresh?")) {
         resetLevel(5);
+        library.activeEntry = null;
         pendingIntro = true;
         renderAll();
+        renderLibrary();
     }
 });
 
 function importJson(text) {
     if (text.trim() === "") {
-        alert("Paste level JSON into the text area first.");
+        alert("That file is empty.");
         return;
     }
 
@@ -974,6 +1037,379 @@ function importJson(text) {
 
     applyLevelData(level);
 }
+
+// ---------- level library ----------
+// Lets the editor open a whole folder of levels (via the File System Access
+// API - Chromium only), drag-reorder them, and edit one in place - the web
+// side of the shared levels-manifest.json that a Unity Editor tool
+// (LevelManifestSync.cs) also reads to keep LevelDatabase.levelFiles in sync,
+// so reordering/adding/editing here needs no more manual Inspector dragging.
+
+const LIBRARY_MANIFEST_NAME = "levels-manifest.json";
+const LIBRARY_DB_NAME = "meowdoku-level-editor";
+const LIBRARY_STORE_NAME = "handles";
+const LIBRARY_HANDLE_KEY = "levelLibraryDir";
+
+function librarySupported() {
+    return "showDirectoryPicker" in window;
+}
+
+function openLibraryDb() {
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(LIBRARY_DB_NAME, 1);
+        request.onupgradeneeded = () => request.result.createObjectStore(LIBRARY_STORE_NAME);
+        request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+async function idbGetHandle() {
+    const db = await openLibraryDb();
+    return new Promise((resolve, reject) => {
+        const request = db.transaction(LIBRARY_STORE_NAME, "readonly").objectStore(LIBRARY_STORE_NAME).get(LIBRARY_HANDLE_KEY);
+        request.onsuccess = () => resolve(request.result ?? null);
+        request.onerror = () => reject(request.error);
+    });
+}
+
+async function idbSetHandle(handle) {
+    const db = await openLibraryDb();
+    return new Promise((resolve, reject) => {
+        const tx = db.transaction(LIBRARY_STORE_NAME, "readwrite");
+        tx.objectStore(LIBRARY_STORE_NAME).put(handle, LIBRARY_HANDLE_KEY);
+        tx.oncomplete = () => resolve();
+        tx.onerror = () => reject(tx.error);
+    });
+}
+
+async function openLibraryFolder() {
+    const handle = await window.showDirectoryPicker({ mode: "readwrite" });
+    library.dirHandle = handle;
+    idbSetHandle(handle).catch(() => {}); // best-effort persistence, not required to work
+    el.libraryReconnectBtn.hidden = true;
+    await loadLibraryFromHandle();
+}
+
+/** (Re)reads every level in library.dirHandle plus levels-manifest.json (if present) and
+ *  rebuilds library.entries in manifest order - files on disk but missing from the manifest
+ *  are appended at the end and flag manifestDirty, same "don't silently drop it" spirit as
+ *  LevelManifestSync.cs's orphan warning on the Unity side. */
+async function loadLibraryFromHandle() {
+    const dirHandle = library.dirHandle;
+    const found = [];
+    for await (const [name, handle] of dirHandle.entries()) {
+        if (handle.kind !== "file" || !name.endsWith(".json") || name === LIBRARY_MANIFEST_NAME) {
+            continue;
+        }
+
+        let level;
+        try {
+            level = parseLevelJson(await (await handle.getFile()).text());
+        } catch (error) {
+            console.warn(`Level Library: skipping unreadable file "${name}": ${error.message}`);
+            continue;
+        }
+
+        found.push({ fileStem: name.slice(0, -".json".length), fileName: name, fileHandle: handle, level });
+    }
+
+    let order = null;
+    try {
+        const manifestHandle = await dirHandle.getFileHandle(LIBRARY_MANIFEST_NAME, { create: false });
+        order = JSON.parse(await (await manifestHandle.getFile()).text())?.order ?? null;
+    } catch {
+        // No manifest yet (first-ever open of this folder) - fall back to
+        // alphabetical and let the next Save Library Order create one.
+    }
+
+    if (order) {
+        const byStem = new Map(found.map((entry) => [entry.fileStem, entry]));
+        const ordered = [];
+        for (const stem of order) {
+            const entry = byStem.get(stem);
+            if (entry) {
+                ordered.push(entry);
+                byStem.delete(stem);
+            }
+        }
+
+        for (const orphan of byStem.values()) {
+            ordered.push(orphan);
+        }
+
+        library.entries = ordered;
+        library.manifestDirty = byStem.size > 0;
+    } else {
+        found.sort((a, b) => a.fileStem.localeCompare(b.fileStem));
+        library.entries = found;
+        library.manifestDirty = found.length > 0;
+    }
+
+    library.activeEntry = null;
+    renderLibrary();
+}
+
+async function saveLibraryOrder() {
+    if (!library.dirHandle) {
+        return;
+    }
+
+    const manifest = { formatVersion: 1, order: library.entries.map((entry) => entry.fileStem) };
+    const handle = await library.dirHandle.getFileHandle(LIBRARY_MANIFEST_NAME, { create: true });
+    const writable = await handle.createWritable();
+    await writable.write(JSON.stringify(manifest, null, 2) + "\n");
+    await writable.close();
+
+    library.manifestDirty = false;
+    renderLibrary();
+}
+
+/** The other half of "edit levels in the level editor and it reflects in Unity": writes the
+ *  currently-edited level back to its own file (if loaded from the library) or creates a new
+ *  file and appends it to the library (if not). Always writes back to the ORIGINATING file
+ *  handle, never to whatever the id field currently says - renaming id while editing must not
+ *  silently fork into a second file. */
+async function saveToLibrary() {
+    if (!library.dirHandle) {
+        return;
+    }
+
+    const built = tryBuildLevel();
+    if (!built.level) {
+        alert(built.error);
+        return;
+    }
+
+    const text = serializeLevel(built.level);
+
+    if (library.activeEntry) {
+        const writable = await library.activeEntry.fileHandle.createWritable();
+        await writable.write(text);
+        await writable.close();
+        library.activeEntry.level = built.level;
+        renderLibrary();
+        return;
+    }
+
+    const fileStem = built.level.id || slugify(built.level.title);
+    const fileName = `${fileStem}.json`;
+    // If this id/slug collides with an already-listed entry (e.g. "New" then
+    // typing the same id by mistake), overwrite that entry in place instead
+    // of creating a second list entry pointing at the same file.
+    const existing = library.entries.find((entry) => entry.fileStem === fileStem);
+
+    const fileHandle = await library.dirHandle.getFileHandle(fileName, { create: true });
+    const writable = await fileHandle.createWritable();
+    await writable.write(text);
+    await writable.close();
+
+    if (existing) {
+        existing.fileHandle = fileHandle;
+        existing.level = built.level;
+        library.activeEntry = existing;
+    } else {
+        const entry = { fileStem, fileName, fileHandle, level: built.level };
+        library.entries.push(entry);
+        library.activeEntry = entry;
+        library.manifestDirty = true;
+    }
+
+    renderLibrary();
+}
+
+function removeLibraryEntry(index) {
+    const [removed] = library.entries.splice(index, 1);
+    if (library.activeEntry === removed) {
+        library.activeEntry = null;
+    }
+
+    library.manifestDirty = true;
+    renderLibrary();
+}
+
+function loadLibraryEntry(index) {
+    const entry = library.entries[index];
+    if (!entry) {
+        return;
+    }
+
+    applyLevelData(entry.level); // clears library.activeEntry itself first - see its comment
+    library.activeEntry = entry;
+    renderLibrary();
+}
+
+function updateSaveToLibraryButton() {
+    el.saveToLibraryBtn.disabled = !library.dirHandle;
+    el.saveToLibraryBtn.textContent = library.activeEntry ? "Save to Library" : "Add to Library";
+}
+
+let libraryDragIndex = null;
+
+/** Native HTML5 drag-and-drop - desktop-only local tool, no touch support needed. Reordering
+ *  splices library.entries directly and always re-renders from it afterward (never trusts a
+ *  stale dataset.index post-splice); library.activeEntry is an object reference rather than an
+ *  index specifically so it never needs adjusting when entries move around it. */
+function attachLibraryDragHandlers(li, index) {
+    li.addEventListener("dragstart", (event) => {
+        libraryDragIndex = index;
+        li.classList.add("dragging");
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", String(index));
+    });
+
+    li.addEventListener("dragend", () => {
+        li.classList.remove("dragging");
+        for (const row of el.libraryList.children) {
+            row.classList.remove("drag-over-before", "drag-over-after");
+        }
+    });
+
+    li.addEventListener("dragover", (event) => {
+        event.preventDefault();
+        const rect = li.getBoundingClientRect();
+        const before = event.clientY < rect.top + rect.height / 2;
+        li.classList.toggle("drag-over-before", before);
+        li.classList.toggle("drag-over-after", !before);
+    });
+
+    li.addEventListener("dragleave", () => {
+        li.classList.remove("drag-over-before", "drag-over-after");
+    });
+
+    li.addEventListener("drop", (event) => {
+        event.preventDefault();
+        const from = libraryDragIndex;
+        const before = li.classList.contains("drag-over-before");
+        li.classList.remove("drag-over-before", "drag-over-after");
+        if (from === null || from === index) {
+            return;
+        }
+
+        const [moved] = library.entries.splice(from, 1);
+        let to = index;
+        if (from < index) {
+            to -= 1;
+        }
+        if (!before) {
+            to += 1;
+        }
+
+        library.entries.splice(to, 0, moved);
+        library.manifestDirty = true;
+        renderLibrary();
+    });
+}
+
+function renderLibrary() {
+    if (library.dirHandle) {
+        const dirtyNote = library.manifestDirty ? " (unsaved order)" : "";
+        el.libraryStatus.textContent = `${library.entries.length} level${library.entries.length === 1 ? "" : "s"} in "${library.dirHandle.name}"${dirtyNote}`;
+    } else {
+        el.libraryStatus.textContent = "No folder open.";
+    }
+
+    el.librarySaveOrderBtn.disabled = !library.dirHandle;
+
+    el.libraryList.replaceChildren();
+    library.entries.forEach((entry, index) => {
+        const li = document.createElement("li");
+        li.className = "library-item" + (entry === library.activeEntry ? " active" : "");
+        li.draggable = true;
+
+        const handleSpan = document.createElement("span");
+        handleSpan.className = "library-drag-handle";
+        handleSpan.textContent = "☰";
+
+        // Shows the level's position in this order (what the player will
+        // actually see it as, e.g. GameManager's levelIndex + 1) rather than
+        // its title/name - that's what the library is for managing here.
+        const number = document.createElement("span");
+        number.className = "library-item-number";
+        number.textContent = `Level ${index + 1}`;
+
+        const meta = document.createElement("span");
+        meta.className = "library-item-meta";
+        meta.textContent = entry.fileName;
+
+        const removeBtn = document.createElement("button");
+        removeBtn.type = "button";
+        removeBtn.className = "btn small";
+        removeBtn.textContent = "Remove";
+        removeBtn.title = "Remove from the library order - does not delete the file";
+        removeBtn.addEventListener("click", (event) => {
+            event.stopPropagation();
+            removeLibraryEntry(index);
+        });
+
+        li.append(handleSpan, number, meta, removeBtn);
+        li.addEventListener("click", () => loadLibraryEntry(index));
+        attachLibraryDragHandlers(li, index);
+        el.libraryList.append(li);
+    });
+
+    updateSaveToLibraryButton();
+}
+
+async function restoreLibraryHandle() {
+    let handle;
+    try {
+        handle = await idbGetHandle();
+    } catch {
+        return;
+    }
+
+    if (!handle) {
+        return;
+    }
+
+    library.dirHandle = handle;
+    const permission = await handle.queryPermission({ mode: "readwrite" }).catch(() => "prompt");
+    if (permission === "granted") {
+        try {
+            await loadLibraryFromHandle();
+        } catch (error) {
+            console.warn("Level Library: failed to auto-load the persisted folder:", error);
+            library.dirHandle = null;
+        }
+    } else {
+        el.libraryReconnectBtn.hidden = false;
+        el.libraryStatus.textContent = `Folder "${handle.name}" needs permission - click Reconnect.`;
+    }
+}
+
+el.libraryOpenBtn.addEventListener("click", async () => {
+    try {
+        await openLibraryFolder();
+    } catch (error) {
+        if (error.name !== "AbortError") {
+            alert(`Couldn't open that folder: ${error.message}`);
+        }
+    }
+});
+
+el.libraryReconnectBtn.addEventListener("click", async () => {
+    if (!library.dirHandle) {
+        return;
+    }
+
+    try {
+        const permission = await library.dirHandle.requestPermission({ mode: "readwrite" });
+        if (permission === "granted") {
+            el.libraryReconnectBtn.hidden = true;
+            await loadLibraryFromHandle();
+        }
+    } catch (error) {
+        alert(`Couldn't reconnect: ${error.message}`);
+    }
+});
+
+el.librarySaveOrderBtn.addEventListener("click", () => {
+    saveLibraryOrder().catch((error) => alert(`Couldn't save library order: ${error.message}`));
+});
+
+el.saveToLibraryBtn.addEventListener("click", () => {
+    saveToLibrary().catch((error) => alert(`Couldn't save to library: ${error.message}`));
+});
 
 // ---------- theme ----------
 
@@ -1004,3 +1440,13 @@ el.themeSwitch.addEventListener("click", (event) => {
 resetLevel(5);
 applyTheme(localStorage.getItem("meowdoku-theme") ?? "auto");
 renderAll();
+
+if (librarySupported()) {
+    renderLibrary();
+    restoreLibraryHandle();
+} else {
+    el.libraryOpenBtn.disabled = true;
+    el.libraryList.hidden = true;
+    el.libraryUnsupported.hidden = false;
+    el.libraryStatus.textContent = "Not supported in this browser.";
+}

@@ -1,29 +1,58 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace Meowdoku
 {
     /// <summary>
-    /// Owns the free-use budget for each powerup (Reveal A Cat, Hint). No currency/economy system
-    /// exists yet - <see cref="freeRevealCatUsesPerLevel"/>/<see cref="freeHintUsesPerLevel"/> are the
-    /// whole "gate" for now. <see cref="ResetForLevel"/> is called by GameManager on both a fresh level
-    /// load and an explicit retry (mirroring PuzzleBoard's own per-attempt reset), but NOT when an extra
-    /// life is granted to continue the same attempt - the budget is per-attempt, not per-heart.
+    /// Owns the global free-use budget for each powerup (Reveal A Cat, Hint). No currency/economy system
+    /// exists yet - the configured counts are granted once when the manager initializes and are not refilled
+    /// on level load or retry.
     /// </summary>
     public sealed class PowerupManager : MonoBehaviour
     {
-        [SerializeField] private int freeRevealCatUsesPerLevel = 1;
-        [SerializeField] private int freeHintUsesPerLevel = 1;
+        [FormerlySerializedAs("freeRevealCatUsesPerLevel")]
+        [SerializeField] private int freeRevealCatUses = 1;
+
+        [FormerlySerializedAs("freeHintUsesPerLevel")]
+        [SerializeField] private int freeHintUses = 1;
 
         private int revealCatUsesRemaining;
         private int hintUsesRemaining;
+        private bool initialized;
 
-        public int RevealCatUsesRemaining => revealCatUsesRemaining;
-        public int HintUsesRemaining => hintUsesRemaining;
-
-        public void ResetForLevel()
+        public int RevealCatUsesRemaining
         {
-            revealCatUsesRemaining = freeRevealCatUsesPerLevel;
-            hintUsesRemaining = freeHintUsesPerLevel;
+            get
+            {
+                InitializeGlobalBudget();
+                return revealCatUsesRemaining;
+            }
+        }
+
+        public int HintUsesRemaining
+        {
+            get
+            {
+                InitializeGlobalBudget();
+                return hintUsesRemaining;
+            }
+        }
+
+        private void Awake()
+        {
+            InitializeGlobalBudget();
+        }
+
+        public void InitializeGlobalBudget()
+        {
+            if (initialized)
+            {
+                return;
+            }
+
+            initialized = true;
+            revealCatUsesRemaining = Mathf.Max(0, freeRevealCatUses);
+            hintUsesRemaining = Mathf.Max(0, freeHintUses);
         }
 
         /// <summary>True (and consumes one use) if a free use was available. The caller should still let
@@ -31,6 +60,8 @@ namespace Meowdoku
         /// hooks in below - so this never blocks the click itself, only whether it grants anything yet.</summary>
         public bool TryConsumeRevealCat()
         {
+            InitializeGlobalBudget();
+
             if (revealCatUsesRemaining > 0)
             {
                 revealCatUsesRemaining--;
@@ -44,6 +75,8 @@ namespace Meowdoku
 
         public bool TryConsumeHint()
         {
+            InitializeGlobalBudget();
+
             if (hintUsesRemaining > 0)
             {
                 hintUsesRemaining--;

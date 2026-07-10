@@ -20,19 +20,12 @@ namespace Meowdoku
         [SerializeField] private CanvasGroup canvasGroup;
         [SerializeField] private TMP_Text countText;
 
-        [SerializeField] private TransformSpringComponent countSpring;
-        [SerializeField] private SpriteSheetAnimationPlayer catAnimationPlayer;
 
         private Tween visibilityTween;
 
         private void Awake()
         {
             SetVisibleImmediate(true);
-        }
-
-        private void OnEnable()
-        {
-            PlayIdleCatAnimation();
         }
 
         private void OnDisable()
@@ -46,19 +39,6 @@ namespace Meowdoku
             if (countText != null)
             {
                 countText.text = $"{revealedCatCount}/{totalCats}";
-            }
-        }
-
-        /// <summary>Pops the counter when a cat is found. Purely additive - Refresh already set the correct number.</summary>
-        public void PlayCatCollected()
-        {
-            if (countSpring != null)
-            {
-                countSpring.AddVelocityScale(Vector3.one * PopScaleImpulse);
-            }
-            if (catAnimationPlayer != null)
-            {
-                catAnimationPlayer.PlayOnceThen(ExcitedAnimationName, RevealedAnimationName);
             }
         }
 
@@ -115,14 +95,6 @@ namespace Meowdoku
             }
 
             return canvasGroup;
-        }
-
-        private void PlayIdleCatAnimation()
-        {
-            if (catAnimationPlayer != null)
-            {
-                catAnimationPlayer.Play(RevealedAnimationName, false);
-            }
         }
     }
 }

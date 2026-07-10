@@ -167,6 +167,7 @@ namespace Meowdoku
 
         private void Awake()
         {
+            tutorialHandImage.gameObject.SetActive(false);
             if (ruleCardBodyTypewriter != null)
             {
                 ruleCardBodyTypewriter.onTextShowed.AddListener(OnRuleCardBodyTextFullyShown);
@@ -214,7 +215,7 @@ namespace Meowdoku
             }
 
             onLessonComplete = onComplete;
-
+            tutorialHandImage.gameObject.SetActive(true);
             ruleCardRestAnchoredPosition = ruleCardRoot.anchoredPosition;
             ruleCardRestScale = ruleCardRoot.localScale;
 

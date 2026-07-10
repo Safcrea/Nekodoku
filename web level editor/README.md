@@ -1,10 +1,14 @@
 # AVN Level Editor: PawDoku (web)
 
 Browser-based editor for the game's JSON level format. Same rules, same files:
-anything saved here drops straight into `Assets/_GameData/Systems/Data/Levels/`
-and registers via the Unity `LevelDatabase` (hand-drag the new `TextAsset`
-into its `levelFiles` list in the Inspector). This is the only way to author
-or validate a level — there's no in-Unity level tooling anymore.
+anything saved here drops straight into
+`Assets/_GameData/Systems/Data/Levels/Default Levels/`. This is the only way
+to author or validate a level's content — there's no in-Unity authoring
+tooling anymore. Level *order* is a shared manifest
+(`levels-manifest.json`, in that same folder) editable from either side — see
+the Level Library section below, and CLAUDE.md's "Level data pipeline" for
+the Unity-side sync tool that reads it (`LevelManifestSync.cs`) — no more
+hand-dragging `TextAsset`s into `LevelDatabase`'s Inspector list.
 
 No build step, no dependencies — plain ES modules.
 
@@ -92,4 +96,20 @@ If you change `LevelData.cs` or the game's puzzle rules, mirror the change in
   places every cat on it (row order); disabled (hover for why) otherwise.
 - **Validation** — live: solution count from the region layout, plus the same
   structural checks the game's `LevelData.ToLevel()` shape checks run.
-- **File** — download/copy the JSON, or paste/open an existing level to edit.
+- **File** — a menu in the top-right of the header (no more inline button row
+  or visible JSON textarea): Download, Copy, Open file…, Save to Library, New.
+- **Level Library** — needs a Chromium-based browser (Chrome/Edge; feature-detected,
+  hidden with a note otherwise). "Open Level Library Folder…" picks
+  `Default Levels/` via the File System Access API; the panel lists every
+  level there, in `levels-manifest.json`'s order (falling back to alphabetical
+  the very first time, before a manifest exists). Drag rows to reorder, then
+  "Save Library Order" writes the manifest back. The panel itself lives in a
+  collapsed-by-default drawer on the right edge of the screen — click the
+  "Level Library" tab to open/close it. Click a row to load that level into
+  the editor; "Save to Library" (in the File menu) writes your edit back to
+  that exact file — it never creates a
+  second file even if you change the Id while editing. With no level loaded
+  from the library, "Save to Library" instead adds the current level as a new
+  file. "Remove" only drops a level from the manifest order, it never deletes
+  the file — an unlisted file is exactly what the Unity-side sync warns about
+  as "orphaned," which is the intended safety net, not a bug.

@@ -867,6 +867,7 @@ namespace Meowdoku
             {
                 hasRecentTap = false;
                 PlayRevealedCatExcitedReaction();
+                SoundManager.PlaySound(SFX.CatMeow);
                 return;
             }
 

@@ -79,6 +79,7 @@ namespace Meowdoku
 
         private void Start()
         {
+            Application.targetFrameRate = 60;
             LocalizationService.InitializeDefaultIfNeeded();
 
             inputHandler.Initialize(this, boardView, gameplayScreen);
@@ -87,9 +88,14 @@ namespace Meowdoku
             levelFailedScreen.ExtraLifeRequested += OnExtraLifeRequested;
             powerupBar.RevealCatRequested += OnRevealCatRequested;
             powerupBar.HintRequested += OnHintRequested;
+            powerupBar.RewardedRevealCatRequested += OnRewardedRevealCatRequested;
+            powerupBar.RewardedHintRequested += OnRewardedHintRequested;
+            powerupManager.InitializeGlobalBudget();
 
             LevelLoader levelLoader = new LevelLoader(levelDatabase);
             levels = levelLoader.LoadLevels();
+
+            SoundManager.PlayMusic(BGM.MainMenu);
 
             if (tutorialLessonController != null && tutorialLessonController.ShouldPlay)
             {
@@ -344,7 +350,6 @@ namespace Meowdoku
             levelCompleteScreen.Hide();
             levelFailedScreen.Hide();
             gameplayScreen.SetHudVisible(true);
-            powerupManager.ResetForLevel();
 
             levelIndex = Mathf.Clamp(nextLevelIndex, 0, levels.Length - 1);
             GameConstants.CurrentLevelIndex = levelIndex;
@@ -469,7 +474,6 @@ namespace Meowdoku
             levelFailedScreen.Hide();
 
             board.Clear();
-            powerupManager.ResetForLevel();
 #if USE_AVNADS_PLUGIN
             levelCompleteReported = false;
             levelFailedReported = false;
@@ -556,6 +560,16 @@ namespace Meowdoku
         /// no gesture-specific guards beyond that, so this just calls it directly.</summary>
         private void OnRevealCatRequested()
         {
+            RevealHiddenCat(false);
+        }
+
+        private void OnRewardedRevealCatRequested()
+        {
+            RevealHiddenCat(true);
+        }
+
+        private void RevealHiddenCat(bool rewarded)
+        {
             if (IsLessonActive || board == null || inputHandler.InputLocked)
             {
                 return;
@@ -566,20 +580,30 @@ namespace Meowdoku
                 return;
             }
 
-            if (!powerupManager.TryConsumeRevealCat())
+            if (!rewarded && !powerupManager.TryConsumeRevealCat())
             {
                 return;
             }
 
             inputHandler.CommitCat(coord.Row, coord.Column);
 #if USE_AVNADS_PLUGIN
-            GameAnalyticsEvents.PowerupUsage(PowerupType.RevealCat, false, AnalyticsLevelNumber);
+            GameAnalyticsEvents.PowerupUsage(PowerupType.RevealCat, rewarded, AnalyticsLevelNumber);
 #endif
         }
 
         /// <summary>Computes and checks for a hint before consuming a free use, so requesting a hint
         /// when there's genuinely nothing to show (e.g. already solved) never burns the budget.</summary>
         private void OnHintRequested()
+        {
+            ShowHint(false);
+        }
+
+        private void OnRewardedHintRequested()
+        {
+            ShowHint(true);
+        }
+
+        private void ShowHint(bool rewarded)
         {
             if (IsLessonActive || board == null || inputHandler.InputLocked)
             {
@@ -592,7 +616,7 @@ namespace Meowdoku
                 return;
             }
 
-            if (!powerupManager.TryConsumeHint())
+            if (!rewarded && !powerupManager.TryConsumeHint())
             {
                 return;
             }
@@ -608,7 +632,7 @@ namespace Meowdoku
 
             hintActive = true;
 #if USE_AVNADS_PLUGIN
-            GameAnalyticsEvents.PowerupUsage(PowerupType.Hint, false, AnalyticsLevelNumber);
+            GameAnalyticsEvents.PowerupUsage(PowerupType.Hint, rewarded, AnalyticsLevelNumber);
 #endif
         }
 

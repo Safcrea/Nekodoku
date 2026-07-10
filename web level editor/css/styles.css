@@ -162,11 +162,64 @@ header.card {
     font-weight: 700;
 }
 
+/* ---- header file menu (Download/Copy/Open/Save to Library/New) ---- */
+
+.file-menu {
+    position: relative;
+}
+
+.file-menu-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 190px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-small);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+    padding: 6px;
+    z-index: 25;
+}
+
+/* The explicit `display: flex` above has the same specificity as the
+   browser's default `[hidden] { display: none }` and would otherwise win
+   (author styles come after the UA stylesheet) - this override, one level
+   more specific, is what actually lets the `hidden` attribute hide it. */
+.file-menu-dropdown[hidden] {
+    display: none;
+}
+
+.file-menu-item {
+    font: inherit;
+    font-size: 12px;
+    text-align: left;
+    color: var(--ink);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--radius-small);
+    padding: 7px 10px;
+    cursor: pointer;
+}
+
+.file-menu-item:hover:not(:disabled) {
+    background: var(--panel-inset);
+    border-color: var(--border-soft);
+}
+
+.file-menu-item:disabled {
+    color: var(--muted);
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
 /* ---- layout ---- */
 
 main {
     display: grid;
-    grid-template-columns: 290px minmax(340px, 1fr) 320px;
+    grid-template-columns: 290px minmax(340px, 1fr);
     gap: 16px;
     align-items: start;
 }
@@ -904,6 +957,139 @@ textarea:focus {
 
 .file-actions {
     margin-top: 10px;
+}
+
+/* ---- level library ----
+   A collapsed-by-default drawer fixed to the right edge of the viewport,
+   rather than a card in the page flow - a slim vertical tab is always
+   visible; clicking it reveals the full panel beside it. Independent of
+   `main`'s grid, so it doesn't compete for column width with the rest of
+   the layout. */
+
+.library-drawer {
+    position: fixed;
+    top: 90px;
+    right: 0;
+    z-index: 30;
+    display: flex;
+    align-items: flex-start;
+    max-height: calc(100vh - 110px);
+}
+
+.library-tab {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    font: inherit;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-right: none;
+    border-radius: var(--radius-small) 0 0 var(--radius-small);
+    padding: 16px 8px;
+    cursor: pointer;
+}
+
+.library-tab:hover {
+    color: var(--accent);
+    border-color: var(--accent);
+}
+
+.library-panel {
+    width: 360px;
+    max-width: min(360px, 85vw);
+    max-height: calc(100vh - 110px);
+    overflow-y: auto;
+    border-radius: var(--radius-small) 0 0 var(--radius-small);
+    box-shadow: -4px 0 16px rgba(0, 0, 0, 0.18);
+}
+
+.library-topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+}
+
+.library-status {
+    font-size: 12px;
+    color: var(--muted);
+}
+
+.library-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.library-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--panel-inset);
+    border: 1px solid var(--border-soft);
+    border-radius: var(--radius-small);
+    padding: 8px 10px;
+    cursor: grab;
+}
+
+.library-item:hover {
+    border-color: var(--accent);
+}
+
+.library-item.active {
+    border-color: var(--accent);
+    background: var(--panel);
+}
+
+.library-item.dragging {
+    opacity: 0.5;
+}
+
+.library-item.drag-over-before {
+    border-top: 2px solid var(--accent);
+}
+
+.library-item.drag-over-after {
+    border-bottom: 2px solid var(--accent);
+}
+
+.library-drag-handle {
+    color: var(--muted);
+    font-size: 14px;
+    line-height: 1;
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.library-item-number {
+    font-weight: 700;
+    flex: 1 1 auto;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.library-item-meta {
+    font-size: 11px;
+    color: var(--muted);
+    flex-shrink: 0;
+}
+
+.library-item-warning {
+    font-size: 11px;
+    color: var(--warn);
+    flex-shrink: 0;
 }
 
 footer {
