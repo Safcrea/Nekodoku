@@ -7,11 +7,11 @@
     <package>com.applovin.mediation:bytedance-adapter:8.1.0.5.0</package>
     <package>com.applovin.mediation:facebook-adapter:[6.21.0.0]</package>
     <package>com.applovin.mediation:google-adapter:[25.4.0.0]</package>
-    <package>com.applovin.mediation:hyprmx-adapter:6.4.2.3</package>
+    <package>com.applovin.mediation:google-ad-manager-adapter:[25.4.0.0]</package>
     <package>com.applovin.mediation:mintegral-adapter:17.1.61.0</package>
     <package>com.applovin.mediation:unityads-adapter:4.19.0.0</package>
     <package>com.applovin.mediation:yandex-adapter:8.2.0.0</package>
-    <package>com.applovin:applovin-sdk:13.5.1</package>
+    <package>com.applovin:applovin-sdk:13.6.3</package>
     <package>com.appsflyer:af-android-sdk:6.17.5</package>
     <package>com.appsflyer:purchase-connector:2.2.0</package>
     <package>com.appsflyer:unity-wrapper:6.17.81</package>
@@ -19,7 +19,6 @@
     <package>com.google.android.gms:play-services-base:18.10.0</package>
     <package>com.google.android.play:core-common:2.0.4</package>
     <package>com.google.android.play:review:2.0.0</package>
-    <package>com.google.android.ump:user-messaging-platform:2.1.0</package>
     <package>com.google.android.ump:user-messaging-platform:4.0.0</package>
     <package>com.google.firebase:firebase-analytics:23.2.0</package>
     <package>com.google.firebase:firebase-analytics-unity:13.11.0</package>

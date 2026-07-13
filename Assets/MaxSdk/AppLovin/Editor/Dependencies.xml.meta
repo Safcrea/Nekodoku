@@ -1,8 +1,5 @@
 fileFormatVersion: 2
-guid: 746da98302dc0402aaa37e8f7bd97e77
-labels:
-- al_max
-- al_max_export_path-MaxSdk/AppLovin/Editor/Dependencies.xml
+guid: b62a62d8a06964546b90473be5611487
 TextScriptImporter:
   externalObjects: {}
   userData: 
