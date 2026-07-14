@@ -1,4 +1,5 @@
 using System;
+using AVN.AdsPlugin.Controllers;
 using DG.Tweening;
 using UnityEngine;
 using UnityEngine.UI;
@@ -104,7 +105,7 @@ namespace Meowdoku
             isOpen = true;
             RefreshToggleVisuals();
             gameObject.SetActive(true);
-
+            AVNPlugin.DTInstance.ShowBannerAd(AVN.AdsPlugin.BannerAdTypes.MREC);
             if (backgroundCanvasGroup != null)
             {
                 backgroundCanvasGroup.gameObject.SetActive(true);
@@ -148,6 +149,7 @@ namespace Meowdoku
                 backgroundCanvasGroup.blocksRaycasts = false;
                 panelSequence.Join(backgroundCanvasGroup.DOFade(0f, CloseSeconds).SetEase(Ease.InOutSine));
             }
+            AVNPlugin.DTInstance.HideBannerAd(AVN.AdsPlugin.BannerAdTypes.MREC);
 
             panelSequence.OnComplete(HideImmediate);
         }

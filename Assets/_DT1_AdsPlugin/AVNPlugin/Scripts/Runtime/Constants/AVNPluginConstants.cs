@@ -9,7 +9,7 @@ public static class AVNPluginConstants
 	public static bool EnableInterAd = true;
 	public static bool EnableRewardedAd = true;
 	public static bool EnableAppOpenAd = true;
-	
+
 	//* don't use this value to check inter delay, it's for internal use
 	public static int DefaultInterAdDelay = 30;
 	private static bool? _cachedIsFirstSession;

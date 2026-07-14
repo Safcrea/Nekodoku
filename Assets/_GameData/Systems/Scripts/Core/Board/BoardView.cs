@@ -352,13 +352,16 @@ namespace Meowdoku
                 bool completedRequired = tutorialRequiredCells != null
                     && tutorialRequiredCells.Contains(coord)
                     && mark == CellMark.Cross;
-                // A revealed cat's cell is always shown undimmed (see GetTutorialDimMode below) even
-                // when it's outside the current sub-guide's allowed set - e.g. the row/column teach step
-                // deliberately excludes the cat's own cell from `allowed` since it can't be crossed. It
-                // must stay interactable to match that undimmed look: otherwise its raycasts are blocked
-                // and a drag gesture *starting* on that cell (a very natural place to start dragging down
-                // a column) never fires OnBeginDrag at all, silently swallowing the whole drag.
-                bool interactive = (allowed || revealedCat) && tutorialInteractionEnabled;
+                // A revealed cat's cell, and a cell an earlier sub-guide already required and crossed,
+                // are always shown undimmed (see GetTutorialDimMode below) even when they're outside the
+                // *current* sub-guide's allowed set - e.g. the row/column teach step's row sub-guide
+                // excludes the cat's own cell from `allowed` since it can't be crossed, and a cell crossed
+                // by an earlier sub-guide (or earlier in this same one) drops out of `allowed` too. Both
+                // must stay interactable to match that undimmed look: otherwise their raycasts are blocked
+                // and a drag gesture *starting* on one of them (a very natural place to start dragging
+                // across a row/column that's already partly marked) never fires OnBeginDrag at all,
+                // silently swallowing the whole drag.
+                bool interactive = (allowed || revealedCat || completedRequired) && tutorialInteractionEnabled;
                 cell.SetInteractable(!inputLocked && interactive);
                 cell.SetTutorialDimMode(GetTutorialDimMode(tutorialRestrictionActive, allowed, completedRequired, revealedCat));
             }
@@ -416,8 +419,9 @@ namespace Meowdoku
         /// <summary>
         /// Cells the lesson previously required (e.g. an earlier sub-guide's cells, now crossed) stay
         /// undimmed once done - only cells that are neither the current sub-guide's target nor already
-        /// completed get dimmed. Interactability for those already-done cells is turned off separately
-        /// via the `allowed` check in <see cref="RefreshVisuals"/>, so this method only ever governs opacity.
+        /// completed get dimmed. Those already-done cells also stay interactable (see the `completedRequired`
+        /// check in <see cref="RefreshVisuals"/>) so a drag can start on one, so this method only ever
+        /// governs opacity, not whether the cell can still be tapped/dragged.
         /// </summary>
         private static TutorialDimMode GetTutorialDimMode(bool restrictionActive, bool allowed, bool completedRequired, bool revealedCat)
         {

@@ -69,6 +69,14 @@ namespace Meowdoku
                 return;
             }
 
+            // A cell an earlier sub-guide already required and crossed stays raycast-enabled during
+            // the tutorial (see BoardView.RefreshVisuals) purely so a drag can *start* on it - it isn't
+            // meant to accept a lone tap toggling it back off.
+            if (!boardView.IsTutorialCrossAllowed(row, column))
+            {
+                return;
+            }
+
             PuzzleBoard board = gameManager.Board;
             bool placeCross = board.GetMark(row, column) != CellMark.Cross;
             if (!board.CanSetCross(row, column, placeCross))
@@ -234,12 +242,14 @@ namespace Meowdoku
             crossDragHasUndoSnapshot = false;
             lastCrossDragRow = -1;
             lastCrossDragColumn = -1;
+            // Always places crosses, regardless of the starting cell's own mark - a drag that
+            // happens to start on an already-crossed cell (e.g. re-dragging across a row that's
+            // only partially marked) must still cross the remaining blank cells it passes over,
+            // not flip into "erase" mode for the whole gesture.
             crossDragPlacesCrosses = true;
 
-            PuzzleBoard board = gameManager.Board;
             if (boardView.TryPointerToCell(screenPosition, eventCamera, out int row, out int column))
             {
-                crossDragPlacesCrosses = board.GetMark(row, column) != CellMark.Cross;
                 ApplyCrossDrag(row, column);
             }
         }
