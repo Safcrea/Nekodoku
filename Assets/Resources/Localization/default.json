@@ -32,6 +32,7 @@
     { "key": "levelComplete.next", "value": "Next" },
     { "key": "levelFailed.text", "value": "Out of Lives" },
     { "key": "levelFailed.retry", "value": "Retry" },
+    { "key": "levelFailed.holdToViewBoard", "value": "Hold to View Board" },
     { "key": "noInternet.text", "value": "No Internet Connection" },
     { "key": "noInternet.retry", "value": "Retry" },
     { "key": "settings.title", "value": "Settings" }
@@ -43,7 +44,12 @@
     },
     {
       "key": "levelFailed.comments",
-      "values": ["So close!", "Don't give up!", "Try again, you've got this!"]
+      "values": [
+        "So close!",
+        "You were so close, {x} cats remain!",
+        "Don't give up!",
+        "Try again, you've got this!"
+      ]
     }
   ]
 }
