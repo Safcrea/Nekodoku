@@ -1,16 +1,19 @@
 using System;
+using System.Collections.Generic;
 using DG.Tweening;
 using Febucci.TextAnimatorForUnity;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 namespace Meowdoku
 {
     /// <summary>
     /// The out-of-hearts popup: panel pop-in, a non-typewriter Text Animator title reveal,
-    /// broken-heart accents, then a retry button fade/pop. Raises <see cref="RetryRequested"/>
-    /// when the retry button is clicked -
+    /// broken-heart accents, then action button fades/pops. Holding the view-board button temporarily
+    /// fades the popup so the failed board can be inspected. Raises <see cref="RetryRequested"/>
+    /// when the retry button is clicked.
     /// GameManager subscribes to that in Start() rather than this class knowing anything
     /// about level restarting.
     /// </summary>
@@ -24,6 +27,9 @@ namespace Meowdoku
         private const float HeartIdleRotateDegrees = 5f;
         private const float RetryButtonDelaySeconds = 0.36f;
         private const float RetryAfterExtraLifeDelaySeconds = 0.18f;
+        private const float ViewBoardButtonDelaySeconds = 0.14f;
+        private const float TemporaryHideSeconds = 0.14f;
+        private const float ViewBoardButtonGap = 24f;
         private const float HideTransitionSeconds = 0.18f;
 
         [SerializeField] private RectTransform failedPanel;
@@ -54,9 +60,17 @@ namespace Meowdoku
         [SerializeField] private TMP_Text commentText;
         [SerializeField] private CanvasGroup commentCanvasGroup;
 
+        [Header("Board preview")]
+        [Tooltip("Optional hold button. If empty, a matching button is cloned from Retry at runtime.")]
+        [SerializeField] private RectTransform viewBoardButton;
+        [SerializeField] private CanvasGroup viewBoardButtonCanvasGroup;
+
         private Sequence failSequence;
         private Tween leftHeartIdleTween;
         private Tween rightHeartIdleTween;
+        private Tween temporaryHideTween;
+        private bool isTemporarilyHidden;
+        private bool isTransitioningOut;
 
         public event Action RetryRequested;
         public event Action ExtraLifeRequested;
@@ -64,6 +78,8 @@ namespace Meowdoku
         private void Awake()
         {
             ResolveReferences();
+            ResolveViewBoardButton();
+            ConfigureViewBoardHoldEvents();
 
             if (retryButton != null && retryButton.TryGetComponent(out Button button))
             {
@@ -86,6 +102,22 @@ namespace Meowdoku
             }
         }
 
+        private void OnApplicationFocus(bool hasFocus)
+        {
+            if (!hasFocus)
+            {
+                RestoreTemporarilyHiddenScreenImmediately();
+            }
+        }
+
+        private void OnApplicationPause(bool paused)
+        {
+            if (paused)
+            {
+                RestoreTemporarilyHiddenScreenImmediately();
+            }
+        }
+
         /// <summary>
         /// <paramref name="extraLifeAvailable"/> gates whether the "Get Extra Life" button is offered
         /// this time - false once it's already been claimed for the current attempt (see
@@ -94,7 +126,7 @@ namespace Meowdoku
         /// player sees the free option before the fallback. When not offered, retry reveals at the same
         /// slot the extra-life button would have used, so the pacing doesn't leave an empty gap.
         /// </summary>
-        public void ShowFailAnimation(bool extraLifeAvailable)
+        public void ShowFailAnimation(bool extraLifeAvailable, int catsRemaining)
         {
             bool wasVisible = failedPanel.gameObject.activeSelf;
             failedPanel.gameObject.SetActive(true);
@@ -104,6 +136,8 @@ namespace Meowdoku
             }
 
             KillTweens();
+            isTemporarilyHidden = false;
+            isTransitioningOut = false;
             PrepareTextAnimation();
 
             SoundManager.PlaySound(SFX.LevelFailed);
@@ -116,7 +150,8 @@ namespace Meowdoku
 
             if (commentText != null)
             {
-                commentText.text = LocalizationService.GetRandomFromPool("levelFailed.comments");
+                string comment = LocalizationService.GetRandomFromPool("levelFailed.comments");
+                commentText.text = LocalizationService.ReplaceCommand(comment, "x", Mathf.Max(0, catsRemaining));
             }
 
             failedPanel.localScale = Vector3.one * 0.84f;
@@ -134,6 +169,7 @@ namespace Meowdoku
             retryButtonCanvasGroup.alpha = 0f;
             retryButtonCanvasGroup.blocksRaycasts = false;
             PrepareExtraLifeButton(extraLifeAvailable);
+            PrepareViewBoardButton();
 
             failSequence = DOTween.Sequence().SetUpdate(true);
             failSequence.Join(failedPanelCanvasGroup.DOFade(1f, PopSeconds));
@@ -166,6 +202,11 @@ namespace Meowdoku
             }
 
             InsertButtonReveal(failSequence, retryButton, retryButtonCanvasGroup, retryDelay);
+            InsertButtonReveal(
+                failSequence,
+                viewBoardButton,
+                viewBoardButtonCanvasGroup,
+                retryDelay + ViewBoardButtonDelaySeconds);
         }
 
         public Tween HideForTransition(float seconds = HideTransitionSeconds)
@@ -176,6 +217,8 @@ namespace Meowdoku
                 return null;
             }
 
+            isTransitioningOut = true;
+            isTemporarilyHidden = false;
             KillTweens();
             SetButtonsInteractable(false);
 
@@ -195,6 +238,59 @@ namespace Meowdoku
         {
             SetButtonInteractable(retryButtonCanvasGroup, interactable);
             SetButtonInteractable(extraLifeButtonCanvasGroup, interactable && extraLifeButton != null && extraLifeButton.gameObject.activeSelf);
+            SetButtonInteractable(viewBoardButtonCanvasGroup, interactable);
+        }
+
+        /// <summary>
+        /// Temporarily fades the failed screen while the view-board button is held. The panel keeps
+        /// blocking raycasts while transparent so releasing the pointer reliably restores it.
+        /// </summary>
+        public void TempHideScreen(bool hide)
+        {
+            if (failedPanel == null || !failedPanel.gameObject.activeSelf || isTransitioningOut)
+            {
+                return;
+            }
+
+            if (isTemporarilyHidden == hide)
+            {
+                return;
+            }
+
+            isTemporarilyHidden = hide;
+            temporaryHideTween?.Kill();
+            temporaryHideTween = failedPanelCanvasGroup
+                .DOFade(hide ? 0f : 1f, TemporaryHideSeconds)
+                .SetEase(hide ? Ease.OutSine : Ease.InSine)
+                .SetUpdate(true)
+                .OnComplete(() => temporaryHideTween = null);
+
+            // Avoid invisible multi-touch presses on Retry or Extra Life while the board is visible.
+            SetButtonInteractable(retryButtonCanvasGroup, !hide);
+            SetButtonInteractable(
+                extraLifeButtonCanvasGroup,
+                !hide && extraLifeButton != null && extraLifeButton.gameObject.activeSelf);
+        }
+
+        private void RestoreTemporarilyHiddenScreenImmediately()
+        {
+            if (!isTemporarilyHidden)
+            {
+                return;
+            }
+
+            isTemporarilyHidden = false;
+            temporaryHideTween?.Kill();
+            temporaryHideTween = null;
+            if (failedPanelCanvasGroup != null)
+            {
+                failedPanelCanvasGroup.alpha = 1f;
+            }
+
+            SetButtonInteractable(retryButtonCanvasGroup, true);
+            SetButtonInteractable(
+                extraLifeButtonCanvasGroup,
+                extraLifeButton != null && extraLifeButton.gameObject.activeSelf);
         }
 
         private static void SetButtonInteractable(CanvasGroup group, bool interactable)
@@ -238,9 +334,27 @@ namespace Meowdoku
             }
         }
 
+        private void PrepareViewBoardButton()
+        {
+            if (viewBoardButton == null)
+            {
+                return;
+            }
+
+            viewBoardButton.gameObject.SetActive(true);
+            viewBoardButton.localScale = Vector3.one * 0.84f;
+            if (viewBoardButtonCanvasGroup != null)
+            {
+                viewBoardButtonCanvasGroup.alpha = 0f;
+                viewBoardButtonCanvasGroup.blocksRaycasts = false;
+            }
+        }
+
         public void Hide()
         {
             KillTweens();
+            isTemporarilyHidden = false;
+            isTransitioningOut = false;
 
             failedPanel.gameObject.SetActive(false);
 
@@ -259,6 +373,7 @@ namespace Meowdoku
             retryButtonCanvasGroup.alpha = 1f;
             retryButtonCanvasGroup.blocksRaycasts = true;
             ResetExtraLifeButtonVisual();
+            ResetViewBoardButtonVisual();
 
             if (failedTypewriter != null)
             {
@@ -281,6 +396,21 @@ namespace Meowdoku
             }
 
             extraLifeButton.gameObject.SetActive(false);
+        }
+
+        private void ResetViewBoardButtonVisual()
+        {
+            if (viewBoardButton == null)
+            {
+                return;
+            }
+
+            viewBoardButton.localScale = Vector3.one;
+            if (viewBoardButtonCanvasGroup != null)
+            {
+                viewBoardButtonCanvasGroup.alpha = 1f;
+                viewBoardButtonCanvasGroup.blocksRaycasts = true;
+            }
         }
 
         private string BuildFailMessage()
@@ -309,6 +439,54 @@ namespace Meowdoku
 
             brokenHeartLeftCanvasGroup = ResolveCanvasGroup(brokenHeartLeft, brokenHeartLeftCanvasGroup);
             brokenHeartRightCanvasGroup = ResolveCanvasGroup(brokenHeartRight, brokenHeartRightCanvasGroup);
+        }
+
+        private void ResolveViewBoardButton()
+        {
+            if (viewBoardButton == null && retryButton != null && failedPanel != null)
+            {
+                viewBoardButton = Instantiate(retryButton, failedPanel);
+                viewBoardButton.name = "Hold To View Board Button";
+                viewBoardButton.SetAsLastSibling();
+                viewBoardButton.anchoredPosition = retryButton.anchoredPosition
+                    + Vector2.down * (retryButton.rect.height + ViewBoardButtonGap);
+
+                if (viewBoardButton.TryGetComponent(out Button clonedButton))
+                {
+                    clonedButton.onClick.RemoveAllListeners();
+                }
+            }
+
+            viewBoardButtonCanvasGroup = ResolveCanvasGroup(viewBoardButton, viewBoardButtonCanvasGroup);
+        }
+
+        private void ConfigureViewBoardHoldEvents()
+        {
+            if (viewBoardButton == null)
+            {
+                return;
+            }
+
+            EventTrigger trigger = viewBoardButton.GetComponent<EventTrigger>();
+            if (trigger == null)
+            {
+                trigger = viewBoardButton.gameObject.AddComponent<EventTrigger>();
+            }
+
+            trigger.triggers ??= new List<EventTrigger.Entry>();
+            AddEventTrigger(trigger, EventTriggerType.PointerDown, _ => TempHideScreen(true));
+            AddEventTrigger(trigger, EventTriggerType.PointerUp, _ => TempHideScreen(false));
+            AddEventTrigger(trigger, EventTriggerType.Cancel, _ => TempHideScreen(false));
+        }
+
+        private static void AddEventTrigger(
+            EventTrigger trigger,
+            EventTriggerType eventType,
+            UnityEngine.Events.UnityAction<BaseEventData> callback)
+        {
+            var entry = new EventTrigger.Entry { eventID = eventType };
+            entry.callback.AddListener(callback);
+            trigger.triggers.Add(entry);
         }
 
         private static CanvasGroup ResolveCanvasGroup(RectTransform rect, CanvasGroup existing)
@@ -442,6 +620,8 @@ namespace Meowdoku
             leftHeartIdleTween = null;
             rightHeartIdleTween?.Kill();
             rightHeartIdleTween = null;
+            temporaryHideTween?.Kill();
+            temporaryHideTween = null;
 
             failedPanel.DOKill();
             failedPanelCanvasGroup.DOKill();
@@ -455,6 +635,8 @@ namespace Meowdoku
             retryButtonCanvasGroup.DOKill();
             extraLifeButton?.DOKill();
             extraLifeButtonCanvasGroup?.DOKill();
+            viewBoardButton?.DOKill();
+            viewBoardButtonCanvasGroup?.DOKill();
             commentCanvasGroup?.DOKill();
         }
     }
