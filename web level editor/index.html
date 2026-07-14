@@ -3,7 +3,10 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>AVN Level Editor: PawDoku</title>
+    <title>PawDoku Level Studio · AVN</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DotGothic16&family=JetBrains+Mono:ital,wght@0,300;0,400;0,500;0,700;1,400&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="css/styles.css" />
     <script>
         // Apply the saved theme before first paint to avoid a flash.
@@ -16,10 +19,19 @@
     </script>
 </head>
 <body>
-    <header class="card">
-        <div class="brand">
-            <span class="title">&#9701; AVN Level Editor: PawDoku</span>
-            <span class="subtitle">level editor &mdash; paint regions, place cats, ship puzzles</span>
+    <header class="card namecard">
+        <div class="brand-lockup">
+            <div class="brand-mark" aria-hidden="true">
+                <svg viewBox="0 0 64 64" role="img">
+                    <path d="M15 25 12 10l14 8a27 27 0 0 1 12 0l14-8-3 15c4 5 6 10 6 16 0 12-10 18-23 18S9 53 9 41c0-6 2-11 6-16Z" />
+                    <path class="brand-face" d="M22 36h1m17 0h1M25 47c4 3 10 3 14 0M32 40v5" />
+                </svg>
+            </div>
+            <div class="brand">
+                <span class="brand-kicker">AVN creator tools</span>
+                <span class="title">PawDoku Level Studio</span>
+                <span class="subtitle">paint regions, place cats, ship better puzzles</span>
+            </div>
         </div>
         <div class="theme-switch" id="theme-switch" role="group" aria-label="Theme">
             <button data-theme-choice="light">&#9728; Light</button>
@@ -46,9 +58,32 @@
         </div>
     </header>
 
+    <section class="card workspace-overview" aria-label="Current level progress">
+        <div class="workspace-identity">
+            <span class="workspace-eyebrow">Now editing</span>
+            <strong class="workspace-title" id="workspace-title">New Level</strong>
+            <span class="workspace-meta" id="workspace-meta">Untitled · 5×5 board · Regions mode</span>
+        </div>
+        <div class="workspace-grid-stat">
+            <span>Grid</span>
+            <strong id="workspace-size-stat">5×5</strong>
+        </div>
+        <div class="workflow" aria-label="Level readiness">
+            <span class="workflow-step" id="workspace-layout-step"><b>1</b> Paint layout</span>
+            <span class="workflow-line" aria-hidden="true"></span>
+            <span class="workflow-step" id="workspace-solution-step"><b>2</b> Find solution</span>
+            <span class="workflow-line" aria-hidden="true"></span>
+            <span class="workflow-step" id="workspace-cats-step"><b>3</b> Place cats</span>
+        </div>
+        <div class="workspace-readiness" id="workspace-readiness" aria-live="polite">
+            <span class="readiness-dot"></span>
+            <span>Building level</span>
+        </div>
+    </section>
+
     <main>
         <div class="stack">
-            <section class="card">
+            <section class="card tool-card level-card">
                 <div class="micro-label"><span class="glyph">&#9881;</span> Level</div>
                 <div class="field">
                     <label for="id-input">Id (filename)</label>
@@ -63,7 +98,7 @@
                 </div>
             </section>
 
-            <section class="card">
+            <section class="card tool-card paint-card">
                 <div class="micro-label"><span class="glyph">&#9998;</span> Paint</div>
                 <div class="mode-toolbar" id="mode-toolbar">
                     <button data-mode="regions">Regions</button>
@@ -83,7 +118,7 @@
                 </div>
             </section>
 
-            <section class="card">
+            <section class="card tool-card validation-card">
                 <div class="micro-label"><span class="glyph">&#10003;</span> Validation</div>
                 <div class="status-row" id="status-row"></div>
                 <ul class="issue-list" id="issue-list"></ul>
@@ -93,14 +128,21 @@
             </section>
         </div>
 
-        <section class="card">
-            <div class="micro-label"><span class="glyph">&#8862;</span> Board</div>
-            <div class="board-wrap">
-                <div class="board" id="board"></div>
+        <section class="card board-card accent-card">
+            <div class="board-card-heading">
+                <div class="micro-label"><span class="glyph">&#8862;</span> Board</div>
+                <span class="board-mode-pill" id="board-mode-pill">Region brush</span>
             </div>
+            <div class="board-wrap">
+                <div class="board-stage">
+                    <div class="board" id="board"></div>
+                    <div class="board-celebration" id="board-celebration" aria-hidden="true"></div>
+                </div>
+            </div>
+            <p class="board-help" id="board-help">Drag across cells to paint the selected region.</p>
         </section>
 
-        <section class="card generate-row">
+        <section class="card generate-row generator-card accent-card">
             <div class="micro-label"><span class="glyph">&#9860;</span> Generate</div>
 
             <div class="generate-topbar">
@@ -113,35 +155,37 @@
                 </div>
             </div>
 
-            <div class="generate-section">
-                <div class="generate-section-header">
-                    <label>Colors &amp; cell counts</label>
-                    <div class="btn-row">
-                        <button class="btn small" id="randomize-counts-btn" title="Randomly redistribute cell counts across colors">Randomize counts</button>
-                        <button class="btn small" id="even-split-btn" title="Reset to an even split">Even split</button>
+            <div class="generate-pair">
+                <div class="generate-section">
+                    <div class="generate-section-header">
+                        <label>Colors &amp; cell counts</label>
+                        <div class="btn-row">
+                            <button class="btn small" id="randomize-counts-btn" title="Randomly redistribute cell counts across colors">Randomize counts</button>
+                            <button class="btn small" id="even-split-btn" title="Reset to an even split">Even split</button>
+                        </div>
                     </div>
-                </div>
-                <div class="color-count-list" id="color-count-list"></div>
-                <div class="count-config">
-                    <div class="count-config-header">
-                        <label>Randomize constraints</label>
-                        <button class="btn small" id="add-count-rule-btn" type="button" title="Add a count constraint">Add rule</button>
+                    <div class="color-count-list" id="color-count-list"></div>
+                    <div class="count-config">
+                        <div class="count-config-header">
+                            <label>Randomize constraints</label>
+                            <button class="btn small" id="add-count-rule-btn" type="button" title="Add a count constraint">Add rule</button>
+                        </div>
+                        <div class="count-rule-list" id="count-rule-list"></div>
+                        <p class="count-rule-status" id="count-rule-status"></p>
                     </div>
-                    <div class="count-rule-list" id="count-rule-list"></div>
-                    <p class="count-rule-status" id="count-rule-status"></p>
+                    <p class="hint">Click a color swatch to swap in a different color from the palette.</p>
                 </div>
-                <p class="hint">Click a color swatch to swap in a different color from the palette.</p>
-            </div>
 
-            <div class="generate-section">
-                <div class="generate-section-header">
-                    <label>Locked cats (start revealed)</label>
-                    <div class="field-row lock-randomize">
-                        <input type="number" id="lock-count-input" min="0" title="How many to randomize" />
-                        <button class="btn small" id="randomize-locks-btn" title="Randomly pick this many cats to lock">Randomize</button>
+                <div class="generate-section">
+                    <div class="generate-section-header">
+                        <label>Locked cats (start revealed)</label>
+                        <div class="field-row lock-randomize">
+                            <input type="number" id="lock-count-input" min="0" title="How many to randomize" />
+                            <button class="btn small" id="randomize-locks-btn" title="Randomly pick this many cats to lock">Randomize</button>
+                        </div>
                     </div>
+                    <div class="lock-cat-list" id="lock-cat-list"></div>
                 </div>
-                <div class="lock-cat-list" id="lock-cat-list"></div>
             </div>
 
             <div class="generate-footer">

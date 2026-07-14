@@ -97,6 +97,13 @@ const library = {
 
 const el = {
     themeSwitch: document.getElementById("theme-switch"),
+    workspaceTitle: document.getElementById("workspace-title"),
+    workspaceMeta: document.getElementById("workspace-meta"),
+    workspaceSizeStat: document.getElementById("workspace-size-stat"),
+    workspaceLayoutStep: document.getElementById("workspace-layout-step"),
+    workspaceSolutionStep: document.getElementById("workspace-solution-step"),
+    workspaceCatsStep: document.getElementById("workspace-cats-step"),
+    workspaceReadiness: document.getElementById("workspace-readiness"),
     id: document.getElementById("id-input"),
     size: document.getElementById("size-input"),
     sizeValue: document.getElementById("size-value"),
@@ -126,6 +133,10 @@ const el = {
     catRow: document.getElementById("cat-row"),
     lockedToggle: document.getElementById("locked-toggle"),
     board: document.getElementById("board"),
+    boardCard: document.querySelector(".board-card"),
+    boardModePill: document.getElementById("board-mode-pill"),
+    boardHelp: document.getElementById("board-help"),
+    boardCelebration: document.getElementById("board-celebration"),
     statusRow: document.getElementById("status-row"),
     issueList: document.getElementById("issue-list"),
     autoPlaceBtn: document.getElementById("auto-place-btn"),
@@ -288,6 +299,9 @@ function applyLevelData(level) {
     state.selectedRegion = 0;
     state.selectedCat = 0;
     pendingIntro = true;
+    // A newly loaded/generated level deserves its own completion burst even if
+    // the previous board was already valid and ready to ship.
+    validationWasReady = false;
     renderAll();
 }
 
@@ -297,6 +311,7 @@ function renderAll() {
     el.id.value = state.id;
     el.size.value = String(state.size);
     el.sizeValue.textContent = `${state.size}×${state.size}`;
+    renderWorkspaceIdentity();
 
     for (const button of el.modeToolbar.querySelectorAll("button")) {
         button.classList.toggle("active", button.dataset.mode === state.mode);
@@ -312,6 +327,21 @@ function renderAll() {
     renderLockCatList();
     renderBoard();
     renderValidation();
+}
+
+function renderWorkspaceIdentity() {
+    const displayTitle = state.title.trim() || titleFromId(state.id);
+    const idLabel = state.id.trim() || "Untitled";
+    const modeLabel = state.mode === "regions" ? "Regions" : "Cats";
+
+    el.workspaceTitle.textContent = displayTitle;
+    el.workspaceMeta.textContent = `${idLabel} · ${state.size}×${state.size} board · ${modeLabel} mode`;
+    el.workspaceSizeStat.textContent = `${state.size}×${state.size}`;
+    el.boardModePill.textContent = state.mode === "regions" ? "Region brush" : "Cat placement";
+    el.boardHelp.textContent = state.mode === "regions"
+        ? "Drag across cells to paint the selected region."
+        : "Select a numbered cat, then choose its home on the board.";
+    document.body.dataset.editorMode = state.mode;
 }
 
 function showToast(message, tone = "ok") {
@@ -353,7 +383,8 @@ function renderSwatches() {
     el.swatchRow.replaceChildren();
     for (let region = 0; region < state.size; region++) {
         const swatch = document.createElement("button");
-        swatch.className = "swatch" + (state.selectedRegion === region ? " active" : "");
+        swatch.className = "swatch swatch-enter" + (state.selectedRegion === region ? " active" : "");
+        swatch.style.animationDelay = `${region * 24}ms`;
         swatch.style.background = colorForRegion(region);
         swatch.textContent = String(region);
         swatch.title = `Region ${region}`;
@@ -369,9 +400,10 @@ function renderCatRow() {
     el.catRow.replaceChildren();
     for (let i = 0; i < state.size; i++) {
         const slot = document.createElement("button");
-        slot.className = "cat-slot"
+        slot.className = "cat-slot swatch-enter"
             + (state.selectedCat === i ? " active" : "")
             + (state.placements[i] !== null ? " placed" : "");
+        slot.style.animationDelay = `${i * 24}ms`;
         slot.textContent = String(i + 1);
         slot.title = `Cat ${i + 1}`;
         if (state.placements[i]?.locked) {
@@ -711,6 +743,7 @@ function applyCellVisual(row, column) {
 
     const catIndex = placementIndexAt(row, column);
     cell.textContent = catIndex >= 0 ? String(catIndex + 1) : "";
+    cell.classList.toggle("has-cat", catIndex >= 0);
     cell.classList.toggle(
         "selected-cat",
         state.mode === "cats" && catIndex >= 0 && catIndex === state.selectedCat
@@ -733,7 +766,10 @@ function pulseCell(row, column, className) {
     }
 }
 
+let validationWasReady = false;
+
 function renderValidation() {
+    renderWorkspaceIdentity();
     el.statusRow.replaceChildren();
     el.issueList.replaceChildren();
 
@@ -759,6 +795,13 @@ function renderValidation() {
 
     const built = tryBuildLevel();
     const issues = built.level ? findStructuralIssues(built.level) : [];
+    const regionCounts = regionSizesFromState();
+    const layoutReady = regionsAreInRange() && regionCounts.every((count) => count > 0);
+    const solutionReady = solutions === 1;
+    const catsReady = Boolean(built.level) && issues.length === 0;
+    const readyToShip = layoutReady && solutionReady && catsReady;
+
+    updateWorkflow(layoutReady, solutionReady, readyToShip, built, issues);
 
     const readyChip = document.createElement("span");
     if (built.level && issues.length === 0 && solutions === 1) {
@@ -790,6 +833,67 @@ function renderValidation() {
         : solutions === 0
             ? "Auto-place needs a region layout with a legal solution first - this one has none yet."
             : "Auto-place needs exactly one legal solution first - this layout currently has 2+; keep painting until only one remains.";
+
+    if (readyToShip && !validationWasReady) {
+        requestAnimationFrame(celebrateBoard);
+    }
+    validationWasReady = readyToShip;
+}
+
+function updateWorkflow(layoutReady, solutionReady, readyToShip, built, issues) {
+    setWorkflowStep(el.workspaceLayoutStep, layoutReady, !layoutReady);
+    setWorkflowStep(el.workspaceSolutionStep, solutionReady, layoutReady && !solutionReady);
+    setWorkflowStep(el.workspaceCatsStep, readyToShip, solutionReady && !readyToShip);
+
+    let message = "Paint every region";
+    if (layoutReady && !solutionReady) {
+        message = "Refine to one solution";
+    } else if (solutionReady && !built.level) {
+        const missingCats = state.placements.filter((placement) => placement === null).length;
+        message = `Place ${missingCats} cat${missingCats === 1 ? "" : "s"}`;
+    } else if (built.level && issues.length > 0) {
+        message = `Fix ${issues.length} issue${issues.length === 1 ? "" : "s"}`;
+    } else if (readyToShip) {
+        message = "Ready to ship";
+    }
+
+    const label = el.workspaceReadiness.querySelector("span:last-child");
+    label.textContent = message;
+    el.workspaceReadiness.classList.toggle("ready", readyToShip);
+    el.boardCard.classList.toggle("ready", readyToShip);
+}
+
+function setWorkflowStep(step, complete, current) {
+    step.classList.toggle("complete", complete);
+    step.classList.toggle("current", current);
+    const number = step.querySelector("b");
+    if (number) {
+        number.textContent = complete ? "✓" : step === el.workspaceLayoutStep ? "1" : step === el.workspaceSolutionStep ? "2" : "3";
+    }
+}
+
+function celebrateBoard() {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        return;
+    }
+
+    el.boardCelebration.replaceChildren();
+    const colors = [...REGION_COLORS, "#f05d49", "#7d6bc4", "#258b80"];
+    const sparkCount = 18;
+    for (let i = 0; i < sparkCount; i++) {
+        const spark = document.createElement("span");
+        spark.className = "board-spark";
+        const angle = (Math.PI * 2 * i) / sparkCount + (i % 2) * 0.08;
+        const distance = 120 + (i % 5) * 24;
+        spark.style.setProperty("--spark-x", `${Math.cos(angle) * distance}px`);
+        spark.style.setProperty("--spark-y", `${Math.sin(angle) * distance}px`);
+        spark.style.setProperty("--spark-rotation", `${120 + i * 37}deg`);
+        spark.style.setProperty("--spark-delay", `${(i % 4) * 24}ms`);
+        spark.style.setProperty("--spark-color", colors[i % colors.length]);
+        el.boardCelebration.append(spark);
+    }
+
+    window.setTimeout(() => el.boardCelebration.replaceChildren(), 1000);
 }
 
 // ---------- board interaction ----------
@@ -1630,6 +1734,11 @@ el.saveToLibraryBtn.addEventListener("click", () => {
 // ---------- theme ----------
 
 function applyTheme(choice) {
+    if (!window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        document.documentElement.classList.add("theme-changing");
+        window.setTimeout(() => document.documentElement.classList.remove("theme-changing"), 320);
+    }
+
     if (choice === "light" || choice === "dark") {
         document.documentElement.dataset.theme = choice;
         localStorage.setItem("meowdoku-theme", choice);
