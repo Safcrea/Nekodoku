@@ -30,6 +30,8 @@
     { "key": "gameplay.rule3", "value": "1 Cat Per Color" },
     { "key": "levelComplete.text", "value": "Cats Collected" },
     { "key": "levelComplete.next", "value": "Next" },
+    { "key": "levelComplete.continueTutorial", "value": "Continue Tutorial" },
+    { "key": "levelComplete.playGame", "value": "Play Game" },
     { "key": "levelFailed.text", "value": "Out of Lives" },
     { "key": "levelFailed.retry", "value": "Retry" },
     { "key": "levelFailed.holdToViewBoard", "value": "Hold to View Board" },

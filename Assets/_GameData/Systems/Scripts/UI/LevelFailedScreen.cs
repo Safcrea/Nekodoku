@@ -26,7 +26,7 @@ namespace Meowdoku
         private const float HeartIdleRotateSeconds = 1.4f;
         private const float HeartIdleRotateDegrees = 5f;
         private const float RetryButtonDelaySeconds = 0.36f;
-        private const float RetryAfterExtraLifeDelaySeconds = 0.18f;
+        private const float RetryAfterExtraLifeDelaySeconds = 1f;
         private const float ViewBoardButtonDelaySeconds = 0.14f;
         private const float TemporaryHideSeconds = 0.14f;
         private const float ViewBoardButtonGap = 24f;

@@ -195,6 +195,12 @@ namespace Meowdoku
             return lessonActive && AllowsCommit && IsCurrentRevealCat(new Coord(row, column));
         }
 
+        public void MarkLessonsSeen()
+        {
+            PlayerPrefs.SetInt(LessonSeenPlayerPrefsKey, 1);
+            PlayerPrefs.Save();
+        }
+
         private void Awake()
         {
             if (tutorialHandAnimator == null && tutorialHandImage != null)
@@ -594,7 +600,7 @@ namespace Meowdoku
         /// </summary>
         private void ResetRuleCardBodyText()
         {
-            if (ruleCardBodyTypewriter != null)
+            if (ruleCardBodyTypewriter != null && ruleCardBodyTypewriter.gameObject.activeInHierarchy)
             {
                 ruleCardBodyTypewriter.StopShowingText();
             }
@@ -776,7 +782,7 @@ namespace Meowdoku
         /// </summary>
         private void ResetInfoCardText()
         {
-            if (infoCardTypewriter != null)
+            if (infoCardTypewriter != null && infoCardTypewriter.gameObject.activeInHierarchy)
             {
                 infoCardTypewriter.StopShowingText();
             }
@@ -929,8 +935,7 @@ namespace Meowdoku
             ShowInfoCard(LocalizationService.Get("tutorial.info.findLastCat"));
             if (!HasNextLesson)
             {
-                PlayerPrefs.SetInt(LessonSeenPlayerPrefsKey, 1);
-                PlayerPrefs.Save();
+                MarkLessonsSeen();
             }
             onLessonComplete?.Invoke();
             SetCatCounterVisible(true);

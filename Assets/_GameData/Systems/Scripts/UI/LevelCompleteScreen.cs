@@ -16,9 +16,9 @@ namespace Meowdoku
     /// one star per heart remaining - and a VFX burst (a plain <see cref="ParticleSystem"/>
     /// reference - no procedural VFX here) all play once the bucket sequence finishes. The next
     /// button settles into a subtle idle pulse once it's fully faded in, so it keeps drawing the
-    /// eye without being distracting. Raises <see cref="NextRequested"/> when the next button is
-    /// clicked - GameManager subscribes to that in Start() rather than this class knowing
-    /// anything about level progression.
+    /// eye without being distracting. The first tutorial completion also offers a secondary
+    /// "Play Game" action. GameManager subscribes to both actions in Start(), rather than this
+    /// class knowing anything about level progression.
     /// </summary>
     public sealed class LevelCompleteScreen : MonoBehaviour
     {
@@ -45,6 +45,10 @@ namespace Meowdoku
         [SerializeField] private CanvasGroup nextButtonCanvasGroup;
         [Tooltip("Optional - localized \"Next\" button label. Set from LocalizationService each time the panel shows.")]
         [SerializeField] private TMP_Text nextButtonText;
+        [Tooltip("Optional scene-authored secondary action. If omitted, the Next button is cloned once at startup so the tutorial choice is still available.")]
+        [SerializeField] private RectTransform secondaryButton;
+        [SerializeField] private CanvasGroup secondaryButtonCanvasGroup;
+        [SerializeField] private TMP_Text secondaryButtonText;
         [SerializeField] private TransformSpringComponent winPanelSpring;
         [SerializeField] private TransformSpringComponent nextButtonSpring;
 
@@ -63,6 +67,7 @@ namespace Meowdoku
         [SerializeField] private float nextButtonPulseScaleImpulse = 1.8f;
 
         private bool isShowing;
+        private bool showTutorialChoice;
         private int pendingStarsEarned;
         private Sequence panelSequence;
         private Sequence starsSequence;
@@ -70,9 +75,11 @@ namespace Meowdoku
         private Tween nextButtonPulseTween;
 
         public event Action NextRequested;
+        public event Action PlayGameRequested;
 
         private void Awake()
         {
+            ResolveSecondaryButton();
             ResolveSprings();
 
             if (nextButton != null && nextButton.TryGetComponent(out Button button))
@@ -90,13 +97,31 @@ namespace Meowdoku
                 });
             }
 
+            if (secondaryButton != null && secondaryButton.TryGetComponent(out Button secondaryAction))
+            {
+                secondaryAction.onClick.AddListener(() =>
+                {
+                    if (!isShowing || !showTutorialChoice)
+                    {
+                        return;
+                    }
+
+                    GameHaptics.Selection();
+                    SoundManager.PlaySound(SFX.ButtonClick);
+                    PlayOutroAnimation(() => PlayGameRequested?.Invoke());
+                });
+            }
+
             if (winTypewriter != null)
             {
                 winTypewriter.onTextShowed.AddListener(PlayWinVfx);
             }
         }
 
-        public void ShowWinAnimation(Level level, ValidationResult validation)
+        public void ShowWinAnimation(
+            Level level,
+            ValidationResult validation,
+            bool offerTutorialChoice = false)
         {
             if (isShowing)
             {
@@ -104,6 +129,7 @@ namespace Meowdoku
             }
 
             isShowing = true;
+            showTutorialChoice = offerTutorialChoice;
             pendingStarsEarned = validation.HeartsRemaining;
 
             DOVirtual.DelayedCall(0.75f, () =>
@@ -138,10 +164,7 @@ namespace Meowdoku
                 winTypewriter.StopShowingText();
             }
 
-            if (nextButtonText != null)
-            {
-                nextButtonText.text = LocalizationService.Get("levelComplete.next");
-            }
+            ConfigureActionButtons();
 
             if (commentText != null)
             {
@@ -162,6 +185,10 @@ namespace Meowdoku
             }
             SnapSpring(nextButtonSpring, nextButton, nextButton.localPosition, Vector3.one * 0.84f, Quaternion.identity);
             nextButtonCanvasGroup.alpha = 0f;
+            if (showTutorialChoice && secondaryButton != null)
+            {
+                secondaryButtonCanvasGroup.alpha = 0f;
+            }
 
             panelSequence = DOTween.Sequence().SetUpdate(true);
             if (bgCanvasGroup != null)
@@ -200,7 +227,39 @@ namespace Meowdoku
             float nextDelay = StaggerSeconds * 2f;
             panelSequence.Insert(nextDelay, nextButtonCanvasGroup.DOFade(1f, PopSeconds * 0.5f));
             panelSequence.InsertCallback(nextDelay, () => PopScale(nextButtonSpring, Vector3.one, nextButtonPopScaleImpulse));
+            if (showTutorialChoice && secondaryButton != null)
+            {
+                panelSequence.Insert(nextDelay, secondaryButtonCanvasGroup.DOFade(1f, PopSeconds * 0.5f));
+            }
             panelSequence.InsertCallback(nextDelay + (PopSeconds * 0.5f), PlayNextButtonIdlePulse);
+        }
+
+        private void ConfigureActionButtons()
+        {
+            if (nextButtonText != null)
+            {
+                nextButtonText.text = LocalizationService.Get(
+                    showTutorialChoice
+                        ? "levelComplete.continueTutorial"
+                        : "levelComplete.next");
+            }
+
+            if (secondaryButton == null)
+            {
+                showTutorialChoice = false;
+                return;
+            }
+
+            secondaryButton.gameObject.SetActive(showTutorialChoice);
+            if (!showTutorialChoice)
+            {
+                return;
+            }
+
+            if (secondaryButtonText != null)
+            {
+                secondaryButtonText.text = LocalizationService.Get("levelComplete.playGame");
+            }
         }
 
         private void PlayNextButtonIdlePulse()
@@ -247,6 +306,10 @@ namespace Meowdoku
             outroSequence = DOTween.Sequence().SetUpdate(true);
             outroSequence.Join(winLabelCanvasGroup.DOFade(0f, OutroSeconds));
             outroSequence.Join(nextButtonCanvasGroup.DOFade(0f, OutroSeconds));
+            if (secondaryButton != null && secondaryButton.gameObject.activeSelf)
+            {
+                outroSequence.Join(secondaryButtonCanvasGroup.DOFade(0f, OutroSeconds));
+            }
 
             if (bgCanvasGroup != null)
             {
@@ -304,6 +367,12 @@ namespace Meowdoku
             }
             SnapSpring(nextButtonSpring, nextButton, nextButton.localPosition, Vector3.one, Quaternion.identity);
             nextButtonCanvasGroup.alpha = 1f;
+            if (secondaryButton != null)
+            {
+                secondaryButtonCanvasGroup.alpha = 1f;
+                secondaryButton.gameObject.SetActive(false);
+            }
+            showTutorialChoice = false;
 
             if (winTypewriter != null)
             {
@@ -335,6 +404,8 @@ namespace Meowdoku
             winLabelCanvasGroup.DOKill();
             nextButton.DOKill();
             nextButtonCanvasGroup.DOKill();
+            secondaryButton?.DOKill();
+            secondaryButtonCanvasGroup?.DOKill();
             commentCanvasGroup?.DOKill();
         }
 
@@ -414,6 +485,36 @@ namespace Meowdoku
         {
             winPanelSpring = ResolveSpring(winPanel, winPanelSpring, 150f, 11f);
             nextButtonSpring = ResolveSpring(nextButton, nextButtonSpring, 145f, 12f);
+        }
+
+        private void ResolveSecondaryButton()
+        {
+            if (secondaryButton == null && nextButton != null)
+            {
+                secondaryButton = Instantiate(nextButton, nextButton.parent);
+                secondaryButton.name = "Play Game button";
+            }
+
+            if (secondaryButton == null)
+            {
+                return;
+            }
+
+            if (secondaryButtonCanvasGroup == null)
+            {
+                secondaryButtonCanvasGroup = secondaryButton.GetComponent<CanvasGroup>();
+                if (secondaryButtonCanvasGroup == null)
+                {
+                    secondaryButtonCanvasGroup = secondaryButton.gameObject.AddComponent<CanvasGroup>();
+                }
+            }
+
+            if (secondaryButtonText == null)
+            {
+                secondaryButtonText = secondaryButton.GetComponentInChildren<TMP_Text>(true);
+            }
+
+            secondaryButton.gameObject.SetActive(false);
         }
 
         private static TransformSpringComponent ResolveSpring(RectTransform rect, TransformSpringComponent spring, float force, float drag)

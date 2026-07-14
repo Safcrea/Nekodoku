@@ -95,11 +95,16 @@ namespace Meowdoku
                 && !board.HasHiddenCat(row, column);
         }
 
-        /// <summary>Analytics-only sequence: tutorial boards are 0 and 1, then player-facing Level 1
-        /// starts at 2. PlayerPrefs and HUD numbering remain unchanged and still start gameplay at 1.</summary>
+        /// <summary>Both tutorial boards belong to analytics level 0. Normal gameplay uses the same
+        /// 1-based numbering as the HUD, so the first playable level is analytics level 1.</summary>
         private int AnalyticsLevelNumber => isLessonBoardLoaded
-            ? tutorialLessonIndex
-            : levelIndex + GameConstants.AnalyticsTutorialLevelCount;
+            ? 0
+            : levelIndex + GameConstants.FirstLevelNumber;
+
+        private bool ShouldOfferTutorialCompletionChoice =>
+            isLessonBoardLoaded
+            && tutorialLessonController != null
+            && tutorialLessonController.HasNextLesson;
 
         private void OnEnable()
         {
@@ -123,6 +128,7 @@ namespace Meowdoku
 
             inputHandler.Initialize(this, boardView, gameplayScreen);
             levelCompleteScreen.NextRequested += NextLevel;
+            levelCompleteScreen.PlayGameRequested += PlayGameAfterTutorial;
             levelFailedScreen.RetryRequested += OnRetryRequested;
             levelFailedScreen.ExtraLifeRequested += OnExtraLifeRequested;
             powerupBar.RevealCatRequested += OnRevealCatRequested;
@@ -335,7 +341,10 @@ namespace Meowdoku
                 }
                 else if (completeTransitionPlayed)
                 {
-                    levelCompleteScreen.ShowWinAnimation(board.Level, validation);
+                    levelCompleteScreen.ShowWinAnimation(
+                        board.Level,
+                        validation,
+                        ShouldOfferTutorialCompletionChoice);
                 }
             }
             else
@@ -378,7 +387,10 @@ namespace Meowdoku
             ReportLevelCompleteIfNeeded();
 
             Tween boardTween = boardView.PlayLevelCompleteTransition(board, origin);
-            levelCompleteScreen.ShowWinAnimation(board.Level, validation);
+            levelCompleteScreen.ShowWinAnimation(
+                board.Level,
+                validation,
+                ShouldOfferTutorialCompletionChoice);
             if (boardTween != null)
             {
                 yield return boardTween.WaitForCompletion(true);
@@ -529,6 +541,20 @@ namespace Meowdoku
             AVNPlugin.DTInstance?.ShowInterAd();
             AVNPlugin.DTInstance?.NativeRateUsCall();
             AVNPlugin.DTInstance?.NotificationCall();
+        }
+
+        private void PlayGameAfterTutorial()
+        {
+            if (!isLessonBoardLoaded)
+            {
+                return;
+            }
+
+            tutorialLessonController?.MarkLessonsSeen();
+            isLessonBoardLoaded = false;
+            IsLessonActive = false;
+            LoadLevel(GetSavedLevelIndex());
+            AVNPlugin.DTInstance?.LoadBanner(true, BannerAdTypes.BANNER);
         }
 
         private void OnRetryRequested()

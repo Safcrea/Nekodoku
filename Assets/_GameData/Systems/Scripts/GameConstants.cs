@@ -4,7 +4,6 @@ namespace Meowdoku
     {
         public const string CurrentLevelNumberPlayerPrefsKey = "Nekodoku.CurrentLevelNumber";
         public const int FirstLevelNumber = 1;
-        public const int AnalyticsTutorialLevelCount = 2;
 
         /// <summary>When enabled, each failure reveals one additional starting cat on retry,
         /// up to <see cref="MaximumDynamicDifficultyRevealedCats"/> total starting cats.</summary>
