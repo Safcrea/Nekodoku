@@ -10,7 +10,7 @@ using UnityEngine.UI;
 namespace Meowdoku
 {
     /// <summary>
-    /// The once-ever, pre-Level-1 lesson that teaches the three puzzle rules by interleaving them
+    /// The once-ever, pre-Level-1 lessons that teach the three puzzle rules by interleaving them
     /// with the reveal of the board's own cats: tap to reveal cat 1, learn row/column, tap to reveal
     /// cat 2, learn touching, tap to reveal cat 3, learn color, then the player finds the fourth
     /// (and last) cat entirely on their own with no more guidance. Only ever one cell (or a rule's
@@ -26,29 +26,26 @@ namespace Meowdoku
         public const string LessonSeenPlayerPrefsKey = "Nekodoku.TutorialLessonSeen";
 
         private const float CardPopSeconds = 0.4f;
-        private const float PostTextHoldSeconds = 1f;
-        private const float FallbackHoldSeconds = 1.8f;
         private const float CardDockSeconds = 0.65f;
         private const float CardStartScale = 0.7f;
         private const float TabDockScale = 0.35f;
         private const float FocusRingPadding = 34f;
         private const float DimOverlayFadeSeconds = 0.35f;
-        private const float RevealHandTapRotationDegrees = 7f;
         private const float GuideFadeSeconds = 0.25f;
         private const float PhaseTransitionSeconds = 0.5f;
         private const float GuideMoveLerpSpeed = 10f;
         private const float InfoCardPopSeconds = 0.3f;
         private const float InfoCardFadeOutSeconds = 0.3f;
 
-        // Reveal-cat double-tap guide: two short, discrete presses (not one smooth undulation) so it
-        // actually reads as a double-click, followed by a long hold before the loop repeats.
-        private const float RevealHandCycleSeconds = 1.7f;
-        private const float RevealTapLeadInSeconds = 0.08f;
-        private const float RevealTapPressSeconds = 0.09f;
-        private const float RevealTapReleaseSeconds = 0.1f;
-        private const float RevealTapGapSeconds = 0.1f;
-        private const float RevealHandPressScale = 0.82f;
-        private const float RevealHandPressOffsetShrink = 0.08f;
+        private const float DragCycleSeconds = 2.4f;
+        private const float DragTravelStart = 0.14f;
+        private const float DragTravelEnd = 0.78f;
+        private const float DragReleaseTime = 0.8f;
+
+        private static readonly int DoubleClickTrigger = Animator.StringToHash("DoubleClick");
+        private static readonly int SingleClickTrigger = Animator.StringToHash("SingleClick");
+        private static readonly int FingerDownTrigger = Animator.StringToHash("FingerDown");
+        private static readonly int FingerUpTrigger = Animator.StringToHash("FingerUp");
 
         /// <summary>All 8 neighbors, in reading order - the touching rule forbids orthogonal AND
         /// diagonal contact, so the teach step must cover every uncrossed neighbor, not just diagonals.</summary>
@@ -95,6 +92,7 @@ namespace Meowdoku
         }
 
         [SerializeField] private TextAsset lessonLevelJson;
+        [SerializeField] private TextAsset secondLessonLevelJson;
         [SerializeField] private BoardView boardView;
         [SerializeField] private CatCounter catCounter;
 
@@ -104,6 +102,10 @@ namespace Meowdoku
         [Header("Hand / focus-ring guide")]
         [SerializeField] private RectTransform tutorialGuideRoot;
         [SerializeField] private Image tutorialHandImage;
+        [SerializeField] private Animator tutorialHandAnimator;
+        [Tooltip("Idle seconds after a SingleClick or DoubleClick clip finishes before the gesture is demonstrated again.")]
+        [Min(0f)]
+        [SerializeField] private float clickAnimationRepeatDelaySeconds = 0.35f;
 
         [Header("Step completion VFX")]
         [SerializeField] private ParticleSystem stepCompletionVfx;
@@ -129,6 +131,9 @@ namespace Meowdoku
         [SerializeField] private TypewriterComponent ruleCardBodyTypewriter;
         [Tooltip("1 = Febucci's default typing speed. Higher = faster.")]
         [SerializeField] private float typewriterSpeedMultiplier = 2.5f;
+        [Tooltip("Seconds the fully revealed rule card remains on screen before it docks into the Rules strip and fades away.")]
+        [Min(0f)]
+        [SerializeField] private float ruleCardHoldSeconds = 2f;
 
         [Header("Info card (one-off instruction, e.g. \"Double Tap To Reveal The Cat\" - pops in, types, then waits for step completion)")]
         [SerializeField] private RectTransform infoCardRoot;
@@ -163,8 +168,19 @@ namespace Meowdoku
         private bool infoCardActive;
         private Coroutine infoCardShowRoutine;
         private bool waitingForFinalCatInfoDismiss;
+        private bool cardRestPoseCaptured;
+        private int activeLessonIndex;
+        private bool handIsPressed;
+        private readonly HashSet<int> missingHandTriggerWarnings = new HashSet<int>();
+        private readonly Dictionary<string, float> handClipLengths = new Dictionary<string, float>();
 
-        public bool ShouldPlay => lessonLevelJson != null && !PlayerPrefs.HasKey(LessonSeenPlayerPrefsKey);
+        public bool ShouldPlay => HasLesson(0) && !PlayerPrefs.HasKey(LessonSeenPlayerPrefsKey);
+        public bool HasNextLesson => HasLesson(activeLessonIndex + 1);
+        public bool IsFinalCatSearchActive =>
+            !lessonActive
+            && waitingForFinalCatInfoDismiss
+            && board != null
+            && board.RevealedCatCount() < board.Size;
 
         public PuzzleBoard Board => board;
 
@@ -181,7 +197,21 @@ namespace Meowdoku
 
         private void Awake()
         {
-            tutorialHandImage.gameObject.SetActive(false);
+            if (tutorialHandAnimator == null && tutorialHandImage != null)
+            {
+                tutorialHandAnimator = tutorialHandImage.GetComponent<Animator>();
+            }
+
+            if (tutorialHandAnimator != null)
+            {
+                tutorialHandAnimator.updateMode = AnimatorUpdateMode.UnscaledTime;
+                CacheHandClipLengths(tutorialHandAnimator);
+            }
+
+            if (tutorialHandImage != null)
+            {
+                tutorialHandImage.gameObject.SetActive(false);
+            }
             if (ruleCardBodyTypewriter != null)
             {
                 ruleCardBodyTypewriter.onTextShowed.AddListener(OnRuleCardBodyTextFullyShown);
@@ -204,18 +234,35 @@ namespace Meowdoku
         /// cell positions on its very first (synchronous) tick, so if the cells don't exist yet it
         /// null-refs immediately.
         /// </summary>
-        public PuzzleBoard PrepareBoard()
+        public bool HasLesson(int lessonIndex)
         {
-            if (lessonLevelJson == null)
+            return GetLessonJson(lessonIndex) != null;
+        }
+
+        public PuzzleBoard PrepareBoard(int lessonIndex)
+        {
+            TextAsset selectedLessonJson = GetLessonJson(lessonIndex);
+            if (selectedLessonJson == null)
             {
                 return null;
             }
 
-            LevelData data = JsonUtility.FromJson<LevelData>(lessonLevelJson.text);
+            activeLessonIndex = lessonIndex;
+            LevelData data = JsonUtility.FromJson<LevelData>(selectedLessonJson.text);
             Level level = data.ToLevel();
             board = new PuzzleBoard(level);
             catCoords = level.Solution;
             return board;
+        }
+
+        private TextAsset GetLessonJson(int lessonIndex)
+        {
+            return lessonIndex switch
+            {
+                0 => lessonLevelJson,
+                1 => secondLessonLevelJson,
+                _ => null,
+            };
         }
 
         /// <summary>Begins teaching the three rules in order. Call only after the board returned by
@@ -229,9 +276,17 @@ namespace Meowdoku
             }
 
             onLessonComplete = onComplete;
+            ResetPresentationForNextLesson();
             tutorialHandImage.gameObject.SetActive(true);
-            ruleCardRestAnchoredPosition = ruleCardRoot.anchoredPosition;
-            ruleCardRestScale = ruleCardRoot.localScale;
+            if (!cardRestPoseCaptured)
+            {
+                ruleCardRestAnchoredPosition = ruleCardRoot.anchoredPosition;
+                ruleCardRestScale = ruleCardRoot.localScale;
+                cardRestPoseCaptured = true;
+            }
+
+            ruleCardRoot.anchoredPosition = ruleCardRestAnchoredPosition;
+            ruleCardRoot.localScale = ruleCardRestScale;
 
             BuildRuleSteps();
             HideAllTabs();
@@ -241,6 +296,32 @@ namespace Meowdoku
 
             lessonActive = true;
             EnterPhase(Phase.RevealCat0);
+        }
+
+        private void ResetPresentationForNextLesson()
+        {
+            cardSequence?.Kill();
+            cardSequence = null;
+            ruleCardRoot.gameObject.SetActive(false);
+            ResetRuleCardBodyText();
+
+            if (infoCardShowRoutine != null)
+            {
+                StopCoroutine(infoCardShowRoutine);
+                infoCardShowRoutine = null;
+            }
+
+            infoCardSequence?.Kill();
+            infoCardSequence = null;
+            infoCardActive = false;
+            if (infoCardRoot != null)
+            {
+                infoCardRoot.gameObject.SetActive(false);
+            }
+
+            ResetInfoCardText();
+            phaseTransitionPending = false;
+            waitingForFinalCatInfoDismiss = false;
         }
 
         public void OnCatRevealCompleted(Coord cat)
@@ -408,7 +489,7 @@ namespace Meowdoku
             // Phase's declaration order IS the 6-step order the analytics wants (RevealCat0..TeachColor
             // = first cat click, first rule play, second cat click, second rule play, third cat click,
             // third rule play) - one call site instead of one per case below.
-            GameAnalyticsEvents.TutorialAnalysis((int)phase + 1);
+            GameAnalyticsEvents.TutorialAnalysis(activeLessonIndex, (int)phase + 1);
 #endif
 
             switch (phase)
@@ -501,7 +582,7 @@ namespace Meowdoku
                     ruleCardBodyText.text = step.Body;
                 }
 
-                DOVirtual.DelayedCall(FallbackHoldSeconds, () => PlayCurrentStepDock(step), false).SetUpdate(true);
+                ScheduleRuleCardDock(step);
             }
         }
 
@@ -537,7 +618,16 @@ namespace Meowdoku
                 return;
             }
 
-            DOVirtual.DelayedCall(PostTextHoldSeconds, () => PlayCurrentStepDock(step), false).SetUpdate(true);
+            ScheduleRuleCardDock(step);
+        }
+
+        private void ScheduleRuleCardDock(RuleStep step)
+        {
+            DOVirtual.DelayedCall(
+                    Mathf.Max(0f, ruleCardHoldSeconds),
+                    () => PlayCurrentStepDock(step),
+                    false)
+                .SetUpdate(true);
         }
 
         /// <summary>
@@ -837,7 +927,11 @@ namespace Meowdoku
             boardView.RefreshVisuals(board, false);
             waitingForFinalCatInfoDismiss = true;
             ShowInfoCard(LocalizationService.Get("tutorial.info.findLastCat"));
-            PlayerPrefs.SetInt(LessonSeenPlayerPrefsKey, 1);
+            if (!HasNextLesson)
+            {
+                PlayerPrefs.SetInt(LessonSeenPlayerPrefsKey, 1);
+                PlayerPrefs.Save();
+            }
             onLessonComplete?.Invoke();
             SetCatCounterVisible(true);
         }
@@ -964,7 +1058,7 @@ namespace Meowdoku
         /// Activates the guide root and fades it in. If it was already visible (moving between
         /// sub-guides within one step), the fade is a no-op-ish top-up and - crucially -
         /// <see cref="guideHasPosition"/> is kept, so the hand *glides* to the new cell via the
-        /// smoothing in <see cref="PlaceHandAndRing"/> instead of teleporting.
+        /// smoothing in <see cref="PlaceHand"/> instead of teleporting.
         /// </summary>
         private void ActivateGuideWithFadeIn()
         {
@@ -997,6 +1091,7 @@ namespace Meowdoku
             }
 
             guideVisible = false;
+            ReleaseHand();
             guideFadeTween?.Kill();
 
             CanvasGroup group = ResolveCanvasGroup(tutorialGuideRoot);
@@ -1017,6 +1112,7 @@ namespace Meowdoku
         public void StopGuide()
         {
             ClearHints();
+            ReleaseHand();
             StopGuideRoutine();
             guideFadeTween?.Kill();
             guideVisible = false;
@@ -1026,11 +1122,6 @@ namespace Meowdoku
                 tutorialGuideRoot.gameObject.SetActive(false);
             }
 
-            if (tutorialHandImage != null)
-            {
-                tutorialHandImage.rectTransform.localScale = Vector3.one;
-                tutorialHandImage.rectTransform.localRotation = Quaternion.identity;
-            }
         }
 
         private void StopGuideRoutine()
@@ -1044,93 +1135,78 @@ namespace Meowdoku
 
         private IEnumerator AnimateRevealGuide(Coord cat)
         {
-            float secondTapStart = RevealTapLeadInSeconds + RevealTapPressSeconds + RevealTapReleaseSeconds + RevealTapGapSeconds;
+            float repeatInterval = GetHandGestureRepeatInterval("double click", 1.1f);
+
+            float cycleStartedAt = Time.unscaledTime;
+            int playedCycle = -1;
 
             while (tutorialGuideRoot != null && tutorialGuideRoot.gameObject.activeSelf)
             {
-                float t = Mathf.Repeat(Time.unscaledTime, RevealHandCycleSeconds);
-                float firstTap = TapEnvelope(t, RevealTapLeadInSeconds, RevealTapPressSeconds, RevealTapReleaseSeconds);
-                float secondTap = TapEnvelope(t, secondTapStart, RevealTapPressSeconds, RevealTapReleaseSeconds);
-                float press = Mathf.Max(firstTap, secondTap);
-                float handRotation = -press * RevealHandTapRotationDegrees;
-                float idlePulse = 0.5f + (Mathf.Sin(Time.unscaledTime * Mathf.PI * 2f / 1.1f) * 0.5f);
-                // Ring mostly tracks the press itself (so it visibly flashes with each tap) with only a
-                // faint idle breathing during the hold, instead of oscillating on its own unrelated cycle.
-                float ringPulse = Mathf.Max(press, idlePulse * 0.3f);
-                PositionGuideAt(cat, press, ringPulse, handRotation);
+                int cycle = Mathf.FloorToInt((Time.unscaledTime - cycleStartedAt) / repeatInterval);
+                if (cycle != playedCycle)
+                {
+                    PlayHandTrigger(DoubleClickTrigger, "DoubleClick");
+                    playedCycle = cycle;
+                }
+
+                PositionGuideAt(cat);
                 yield return null;
             }
 
             guideRoutine = null;
-        }
-
-        /// <summary>
-        /// Quick ease-out rise to full press, ease-out fall back to rest - a discrete finger-press shape
-        /// rather than a smooth sine bump, so two of these placed close together actually read as a
-        /// double-click instead of one long undulation. Returns 0 outside [start, start+pressSeconds+releaseSeconds].
-        /// </summary>
-        private static float TapEnvelope(float t, float start, float pressSeconds, float releaseSeconds)
-        {
-            float local = t - start;
-            if (local < 0f)
-            {
-                return 0f;
-            }
-
-            if (local < pressSeconds)
-            {
-                return Mathf.Sin(Mathf.Clamp01(local / pressSeconds) * Mathf.PI * 0.5f);
-            }
-
-            local -= pressSeconds;
-            if (local < releaseSeconds)
-            {
-                return Mathf.Cos(Mathf.Clamp01(local / releaseSeconds) * Mathf.PI * 0.5f);
-            }
-
-            return 0f;
         }
 
         private IEnumerator AnimateGuide(SubGuide guide)
         {
+            float singleClickRepeatInterval = GetHandGestureRepeatInterval("single click", 0.55f);
+            float cycleStartedAt = Time.unscaledTime;
+            int activeCycle = -1;
+            bool releasedThisCycle = false;
+
             while (tutorialGuideRoot != null && tutorialGuideRoot.gameObject.activeSelf)
             {
-                float seconds = guide.IsDrag ? 2.4f : 1.65f;
-                float phase01 = Mathf.Repeat(Time.unscaledTime, seconds) / seconds;
-                float travel;
-                float press;
+                float cycleSeconds = guide.IsDrag ? DragCycleSeconds : singleClickRepeatInterval;
+                float elapsed = Time.unscaledTime - cycleStartedAt;
+                int cycle = Mathf.FloorToInt(elapsed / cycleSeconds);
+                float phase01 = Mathf.Repeat(elapsed, cycleSeconds) / cycleSeconds;
 
+                if (cycle != activeCycle)
+                {
+                    if (guide.IsDrag)
+                    {
+                        PressHand();
+                        releasedThisCycle = false;
+                    }
+                    else
+                    {
+                        PlayHandTrigger(SingleClickTrigger, "SingleClick");
+                    }
+
+                    activeCycle = cycle;
+                }
+
+                float travel = 0f;
                 if (guide.IsDrag)
                 {
-                    travel = Mathf.SmoothStep(0f, 1f, Mathf.Clamp01((phase01 - 0.18f) / 0.62f));
-                    press = phase01 >= 0.12f && phase01 <= 0.84f ? 1f : 0f;
-                }
-                else
-                {
-                    travel = 0f;
-                    press = TapPulse(phase01, 0.24f, 0.24f);
+                    travel = Mathf.SmoothStep(
+                        0f,
+                        1f,
+                        Mathf.Clamp01((phase01 - DragTravelStart) / (DragTravelEnd - DragTravelStart)));
+
+                    if (!releasedThisCycle && phase01 >= DragReleaseTime)
+                    {
+                        ReleaseHand();
+                        releasedThisCycle = true;
+                    }
                 }
 
-                float ringPulse = 0.5f + (Mathf.Sin(Time.unscaledTime * Mathf.PI * 2f / 1.1f) * 0.5f);
-                PositionGuide(guide, travel, press, ringPulse);
+                PositionGuide(guide, travel);
                 yield return null;
             }
 
             guideRoutine = null;
         }
-
-        private float TapPulse(float phase01, float start, float width)
-        {
-            if (phase01 < start || phase01 > start + width)
-            {
-                return 0f;
-            }
-
-            float local = Mathf.Clamp01((phase01 - start) / width);
-            return Mathf.Sin(local * Mathf.PI);
-        }
-
-        private void PositionGuide(SubGuide guide, float travel, float press, float ringPulse)
+        private void PositionGuide(SubGuide guide, float travel)
         {
             if (!boardView.TryGetCellCenterIn(tutorialGuideRoot, guide.Start, out Vector2 startCenter, out float startSize)
                 || !boardView.TryGetCellCenterIn(tutorialGuideRoot, guide.End, out Vector2 endCenter, out _))
@@ -1139,20 +1215,20 @@ namespace Meowdoku
             }
 
             Vector2 center = Vector2.Lerp(startCenter, endCenter, Mathf.Clamp01(travel));
-            PlaceHandAndRing(center, startSize, press, ringPulse, 0f);
+            PlaceHand(center, startSize);
         }
 
-        private void PositionGuideAt(Coord coord, float press, float ringPulse, float handRotationDegrees = 0f)
+        private void PositionGuideAt(Coord coord)
         {
             if (!boardView.TryGetCellCenterIn(tutorialGuideRoot, coord, out Vector2 center, out float cellSize))
             {
                 return;
             }
 
-            PlaceHandAndRing(center, cellSize, press, ringPulse, handRotationDegrees);
+            PlaceHand(center, cellSize);
         }
 
-        private void PlaceHandAndRing(Vector2 center, float cellSize, float press, float ringPulse, float handRotationDegrees)
+        private void PlaceHand(Vector2 center, float cellSize)
         {
             // Exponential smoothing toward the target: when the target cell changes (next sub-guide),
             // the hand/ring glide over instead of teleporting. First placement after a fade-in snaps.
@@ -1173,13 +1249,86 @@ namespace Meowdoku
             cellSize = guideSmoothedCellSize;
 
             RectTransform handRect = tutorialHandImage.rectTransform;
-            // Shrinks the diagonal offset slightly on press, so the hand visibly "pushes into" the cell
-            // on each tap rather than only shrinking in place - reads much more like an actual finger tap.
-            float offsetMagnitude = cellSize * (0.34f - (RevealHandPressOffsetShrink * Mathf.Clamp01(press)));
+            float offsetMagnitude = cellSize * 0.34f;
             handRect.anchoredPosition = center + new Vector2(offsetMagnitude, -offsetMagnitude);
-            float handScale = Mathf.Lerp(1f, RevealHandPressScale, Mathf.Clamp01(press));
-            handRect.localScale = Vector3.one * handScale;
-            handRect.localRotation = Quaternion.Euler(0f, 0f, handRotationDegrees);
+        }
+
+        private void PressHand()
+        {
+            if (!handIsPressed && PlayHandTrigger(FingerDownTrigger, "FingerDown"))
+            {
+                handIsPressed = true;
+            }
+        }
+
+        private void ReleaseHand()
+        {
+            if (!handIsPressed)
+            {
+                return;
+            }
+
+            PlayHandTrigger(FingerUpTrigger, "FingerUp");
+            handIsPressed = false;
+        }
+
+        /// <summary>
+        /// Reads each clip's real length off the Animator Controller once at startup, so the
+        /// SingleClick/DoubleClick retrigger cadence below is derived from how long the clip
+        /// actually plays rather than a hand-guessed constant that silently drifts out of sync
+        /// the next time an artist re-times "single click.anim"/"double click.anim" - which is
+        /// exactly what caused the double-click gesture to keep cutting itself off before it
+        /// could finish playing.
+        /// </summary>
+        private void CacheHandClipLengths(Animator animator)
+        {
+            RuntimeAnimatorController controller = animator.runtimeAnimatorController;
+            if (controller == null)
+            {
+                return;
+            }
+
+            foreach (AnimationClip clip in controller.animationClips)
+            {
+                if (clip != null)
+                {
+                    handClipLengths[clip.name] = clip.length;
+                }
+            }
+        }
+
+        /// <summary>Seconds between repeats of a one-shot hand gesture: the clip's own length (so the
+        /// retrigger never fires while it's still playing) plus <see cref="clickAnimationRepeatDelaySeconds"/>
+        /// of idle hold afterward. Falls back to <paramref name="fallbackClipLength"/> if the clip isn't found.</summary>
+        private float GetHandGestureRepeatInterval(string clipName, float fallbackClipLength)
+        {
+            float clipLength = handClipLengths.TryGetValue(clipName, out float length) ? length : fallbackClipLength;
+            return clipLength + clickAnimationRepeatDelaySeconds;
+        }
+
+        private bool PlayHandTrigger(int triggerHash, string triggerName)
+        {
+            if (tutorialHandAnimator == null)
+            {
+                return false;
+            }
+
+            foreach (AnimatorControllerParameter parameter in tutorialHandAnimator.parameters)
+            {
+                if (parameter.nameHash == triggerHash && parameter.type == AnimatorControllerParameterType.Trigger)
+                {
+                    tutorialHandAnimator.ResetTrigger(triggerHash);
+                    tutorialHandAnimator.SetTrigger(triggerHash);
+                    return true;
+                }
+            }
+
+            if (missingHandTriggerWarnings.Add(triggerHash))
+            {
+                Debug.LogWarning($"Tutorial hand Animator is missing the '{triggerName}' trigger.", tutorialHandAnimator);
+            }
+
+            return false;
         }
 
         // ---- lesson board rule-cell derivation (generic - reads the actual board/region data

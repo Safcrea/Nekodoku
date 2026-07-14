@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using UnityEngine;
 
 namespace Meowdoku
@@ -103,6 +104,20 @@ namespace Meowdoku
             }
 
             return pool[UnityEngine.Random.Range(0, pool.Length)];
+        }
+
+        /// <summary>Replaces a named command such as {x} in localized text. Keeping this separate
+        /// from string.Format lets localization authors use readable command names without escaping
+        /// unrelated TextMesh Pro or Text Animator tags.</summary>
+        public static string ReplaceCommand(string text, string command, object value)
+        {
+            if (string.IsNullOrEmpty(text) || string.IsNullOrEmpty(command))
+            {
+                return text;
+            }
+
+            string replacement = Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty;
+            return text.Replace($"{{{command}}}", replacement);
         }
 
         private static bool TryParseLanguages(

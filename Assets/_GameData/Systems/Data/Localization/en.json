@@ -32,6 +32,7 @@
     { "key": "levelComplete.next", "value": "Next" },
     { "key": "levelFailed.text", "value": "Out of Lives" },
     { "key": "levelFailed.retry", "value": "Retry" },
+    { "key": "levelFailed.holdToViewBoard", "value": "Hold to View Board" },
     { "key": "noInternet.text", "value": "No Internet" },
     { "key": "noInternet.retry", "value": "Retry" },
     { "key": "settings.title", "value": "Settings" }
