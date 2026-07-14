@@ -103,7 +103,8 @@ namespace Meowdoku
             PuzzleBoard board = gameManager.Board;
             int heartsBefore = board.HeartsRemaining;
             gameManager.SaveUndo();
-            CommitResult result = board.CommitCat(row, column);
+            bool penalizeWrongGuess = !gameManager.IsPenaltyFreeTutorialGuess(row, column);
+            CommitResult result = board.CommitCat(row, column, penalizeWrongGuess);
             if (result == CommitResult.NoChange)
             {
                 gameManager.DiscardLastUndo();
@@ -130,6 +131,13 @@ namespace Meowdoku
                 boardView.PlayHeartLostReactionOnRevealedCats(board);
                 gameplayScreen.PlayHeartLost(board.HeartsRemaining);
                 SoundManager.PlaySound(SFX.HeartLost);
+            }
+            else if (result == CommitResult.Wrong)
+            {
+                // The tutorial's final search still shows the normal red miss, but without the
+                // shake, heart animation, sound, or failure progress of a penalized guess.
+                GridCell missedCell = boardView.GetCellView(row, column);
+                missedCell?.PlayWrongPunch();
             }
         }
 
