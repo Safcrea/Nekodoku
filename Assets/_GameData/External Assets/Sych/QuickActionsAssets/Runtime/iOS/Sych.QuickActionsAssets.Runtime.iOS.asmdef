@@ -1,0 +1,20 @@
+{
+    "name": "Sych.QuickActionsAssets.Runtime.iOS",
+    "rootNamespace": "",
+    "references": [
+        "GUID:dc5029359c74d437f8e5139a0d7a0249"
+    ],
+    "includePlatforms": [
+        "Editor",
+        "iOS",
+        "tvOS"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

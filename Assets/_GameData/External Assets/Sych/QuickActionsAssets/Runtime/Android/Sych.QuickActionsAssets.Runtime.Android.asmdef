@@ -1,0 +1,19 @@
+{
+    "name": "Sych.QuickActionsAssets.Runtime.Android",
+    "rootNamespace": "",
+    "references": [
+        "GUID:dc5029359c74d437f8e5139a0d7a0249"
+    ],
+    "includePlatforms": [
+        "Android",
+        "Editor"
+    ],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

@@ -1,0 +1,36 @@
+namespace Sych.QuickActionsAssets.Runtime
+{
+    public enum IconType
+    {
+        None = -1,
+        Compose = 0,
+        Play = 1,
+        Pause = 2,
+        Add = 3,
+        Location = 4,
+        Search = 5,
+        Share = 6,
+        Prohibit = 7,
+        Contact = 8,
+        Home = 9,
+        MarkLocation = 10,
+        Favorite = 11,
+        Love = 12,
+        Cloud = 13,
+        Invitation = 14,
+        Confirmation = 15,
+        Mail = 16,
+        Message = 17,
+        Date = 18,
+        Time = 19,
+        CapturePhoto = 20,
+        CaptureVideo = 21,
+        Task = 22,
+        TaskCompleted = 23,
+        Alarm = 24,
+        Bookmark = 25,
+        Shuffle = 26,
+        Audio = 27,
+        Update = 28,
+    }
+}

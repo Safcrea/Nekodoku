@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<settings xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <plugin_name>Quick Actions</plugin_name>
+  <plugin_description>Control your app shortcut items on IOS and Android platform on the home screen and in app library.</plugin_description>
+  <support_email>vadim.sych@icloud.com</support_email>
+  <current_asset_store_link>https://assetstore.unity.com/packages/tools/integration/quick-actions-for-ios-and-android-311869#reviews</current_asset_store_link>
+  <all_asset_store_link>https://assetstore.unity.com/publishers/95321</all_asset_store_link>
+  <license>Paid</license>
+  <is_introduction_enabled>false</is_introduction_enabled>
+  <android_bundle_main_type>QuickActionsBridge</android_bundle_main_type>
+  <ios_bundle_main_type>QuickActionsBridge</ios_bundle_main_type>
+  <android_bundle_main_assembly>Sych.QuickActionsAssets.Runtime.Android</android_bundle_main_assembly>
+  <ios_bundle_main_assembly>Sych.QuickActionsAssets.Runtime.iOS</ios_bundle_main_assembly>
+</settings>

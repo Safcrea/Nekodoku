@@ -1,0 +1,5 @@
+<linker>
+  <assembly fullname="Sych.QuickActionsAssets.Runtime" preserve="all" />
+  <assembly fullname="Sych.QuickActionsAssets.Runtime.Android" preserve="all" />
+  <assembly fullname="Sych.QuickActionsAssets.Runtime.iOS" preserve="all" />
+</linker>
