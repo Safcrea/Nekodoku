@@ -1,4 +1,5 @@
 using System.Collections;
+using Sych.QuickActionsAssets.Runtime;
 using DG.Tweening;
 using UnityEngine;
 using AVN.AdsPlugin;
@@ -44,12 +45,15 @@ namespace Meowdoku
         private Level[] levels;
         private PuzzleBoard board;
         private int levelIndex;
+        private int tutorialLessonIndex;
         private bool isLessonBoardLoaded;
         private bool hintActive;
         private Coord? pendingResultOrigin;
         private bool completeTransitionPlayed;
         private bool failedTransitionPlayed;
+        private int currentLevelFailureCount;
         private Coroutine resultTransitionRoutine;
+        private string pendingQuickActionId;
 #if USE_AVNADS_PLUGIN
         private bool levelCompleteReported;
         private bool levelFailedReported;
@@ -58,8 +62,9 @@ namespace Meowdoku
         public PuzzleBoard Board => board;
         public bool IsLessonActive { get; private set; }
 
-        /// <summary>Filters cat commits on the lesson board so wrong double-taps behave like normal
-        /// cross toggles instead of creating revealed misses/hearts lost.</summary>
+        /// <summary>During scripted teaching, only the guided cat can be committed. During the final
+        /// find-the-cat step, any unrevealed tile can be tried; wrong guesses are rendered as red misses
+        /// but are made penalty-free by <see cref="IsPenaltyFreeTutorialGuess"/>.</summary>
         public bool CanCommitCatAt(int row, int column)
         {
             if (IsLessonActive && tutorialLessonController != null)
@@ -69,25 +74,43 @@ namespace Meowdoku
 
             if (isLessonBoardLoaded && board != null)
             {
+                if (tutorialLessonController != null && tutorialLessonController.IsFinalCatSearchActive)
+                {
+                    return board.IsActiveCell(row, column) && !board.IsRevealed(row, column);
+                }
+
                 return board.HasHiddenCat(row, column);
             }
 
             return true;
         }
 
-        /// <summary>Player-facing level number (1-based), matching the HUD's "Level {levelIndex + 1}"
-        /// and SaveCurrentLevelNumber's own PlayerPrefs convention - the single source of truth for what
-        /// "this level" means to analytics.</summary>
-        private int AnalyticsLevelNumber => levelIndex + GameConstants.FirstLevelNumber;
+        public bool IsPenaltyFreeTutorialGuess(int row, int column)
+        {
+            return isLessonBoardLoaded
+                && !IsLessonActive
+                && tutorialLessonController != null
+                && tutorialLessonController.IsFinalCatSearchActive
+                && board != null
+                && !board.HasHiddenCat(row, column);
+        }
+
+        /// <summary>Analytics-only sequence: tutorial boards are 0 and 1, then player-facing Level 1
+        /// starts at 2. PlayerPrefs and HUD numbering remain unchanged and still start gameplay at 1.</summary>
+        private int AnalyticsLevelNumber => isLessonBoardLoaded
+            ? tutorialLessonIndex
+            : levelIndex + GameConstants.AnalyticsTutorialLevelCount;
 
         private void OnEnable()
         {
             LocalizationService.Changed += OnLocalizationChanged;
+            QuickActions.Performed += OnQuickActionPerformed;
         }
 
         private void OnDisable()
         {
             LocalizationService.Changed -= OnLocalizationChanged;
+            QuickActions.Performed -= OnQuickActionPerformed;
         }
 
         private void Start()
@@ -122,6 +145,58 @@ namespace Meowdoku
                 LoadLevel(GetSavedLevelIndex());
                 AVNPlugin.DTInstance?.LoadBanner(true, BannerAdTypes.BANNER);
             }
+
+            ProcessLaunchQuickAction();
+        }
+
+        private void OnQuickActionPerformed(string id)
+        {
+            if (!QuickActions.IsGameAction(id))
+            {
+                return;
+            }
+
+            QuickActions.ResetLastPerformedQuickActionId();
+            if (board == null)
+            {
+                pendingQuickActionId = id;
+                return;
+            }
+
+            PerformQuickAction(id);
+        }
+
+        private void ProcessLaunchQuickAction()
+        {
+            if (!string.IsNullOrEmpty(pendingQuickActionId))
+            {
+                string actionId = pendingQuickActionId;
+                pendingQuickActionId = null;
+                PerformQuickAction(actionId);
+                return;
+            }
+
+            if (QuickActions.TryConsumeLastPerformedGameAction(out string launchActionId))
+            {
+                PerformQuickAction(launchActionId);
+            }
+        }
+
+        private void PerformQuickAction(string id)
+        {
+            switch (id)
+            {
+                case QuickActions.ContinueGameId:
+                    // Opening or foregrounding the app already continues the saved level.
+                    break;
+                case QuickActions.RestartLevelId when !isLessonBoardLoaded:
+                    CancelResultTransitionState();
+                    RestartLevel();
+                    break;
+                case QuickActions.ShowHintId when !isLessonBoardLoaded:
+                    ShowHint(false);
+                    break;
+            }
         }
 
         private void OnLocalizationChanged()
@@ -145,8 +220,9 @@ namespace Meowdoku
 
             isLessonBoardLoaded = true;
             IsLessonActive = true;
+            currentLevelFailureCount = 0;
 
-            board = tutorialLessonController.PrepareBoard();
+            board = tutorialLessonController.PrepareBoard(tutorialLessonIndex);
             if (board == null)
             {
                 IsLessonActive = false;
@@ -156,9 +232,9 @@ namespace Meowdoku
             }
 
 #if USE_AVNADS_PLUGIN
-            // Mirrors LoadLevel's own Started event, using level 0 to represent the pre-Level-1 lesson
-            // (never a real entry in `levels`, so it has no AnalyticsLevelNumber of its own).
-            GameAnalyticsEvents.LevelAnalysis(0, LevelState.Started, LevelMode.DEFAULT);
+            levelCompleteReported = false;
+            levelFailedReported = false;
+            GameAnalyticsEvents.LevelAnalysis(AnalyticsLevelNumber, LevelState.Started, LevelMode.DEFAULT);
 #endif
 
             undoStack.Clear();
@@ -180,7 +256,11 @@ namespace Meowdoku
         private void OnLessonTeachingFinished()
         {
             IsLessonActive = false;
-            AVNPlugin.DTInstance?.LoadBanner(true, BannerAdTypes.BANNER);
+            if (!tutorialLessonController.HasNextLesson)
+            {
+                AVNPlugin.DTInstance?.LoadBanner(true, BannerAdTypes.BANNER);
+            }
+
             Refresh();
         }
 
@@ -276,7 +356,7 @@ namespace Meowdoku
                 }
                 else if (failedTransitionPlayed)
                 {
-                    levelFailedScreen.ShowFailAnimation(!board.HasClaimedExtraLife);
+                    levelFailedScreen.ShowFailAnimation(!board.HasClaimedExtraLife, GetCatsRemaining());
                 }
             }
             else
@@ -314,9 +394,14 @@ namespace Meowdoku
             inputHandler.SetResultLocked(true);
             ReportLevelFailedIfNeeded();
 
+            if (GameConstants.DynamicDifficultyAdjustment)
+            {
+                currentLevelFailureCount++;
+            }
+
             Tween boardTween = boardView.PlayLevelFailedTransition(board);
             yield return new WaitForSecondsRealtime(LevelFailedPopupDelaySeconds);
-            levelFailedScreen.ShowFailAnimation(extraLifeAvailable);
+            levelFailedScreen.ShowFailAnimation(extraLifeAvailable, GetCatsRemaining());
             if (boardTween != null)
             {
                 yield return boardTween.WaitForCompletion(true);
@@ -374,6 +459,7 @@ namespace Meowdoku
             gameplayScreen.SetHudVisible(true);
 
             levelIndex = Mathf.Clamp(nextLevelIndex, 0, levels.Length - 1);
+            currentLevelFailureCount = 0;
             GameConstants.CurrentLevelIndex = levelIndex;
             SaveCurrentLevelNumber();
 #if USE_AVNADS_PLUGIN
@@ -422,6 +508,13 @@ namespace Meowdoku
         {
             if (isLessonBoardLoaded)
             {
+                if (tutorialLessonController != null && tutorialLessonController.HasNextLesson)
+                {
+                    tutorialLessonIndex++;
+                    BeginTutorialLesson();
+                    return;
+                }
+
                 isLessonBoardLoaded = false;
                 LoadLevel(GetSavedLevelIndex());
                 return;
@@ -496,7 +589,7 @@ namespace Meowdoku
             levelCompleteScreen.Hide();
             levelFailedScreen.Hide();
 
-            board.Clear();
+            board.Clear(GetRetryStartingCatCount());
 #if USE_AVNADS_PLUGIN
             levelCompleteReported = false;
             levelFailedReported = false;
@@ -506,6 +599,25 @@ namespace Meowdoku
             Refresh();
             boardView.PlayIntro(inputHandler.InputLocked);
             gameplayScreen.PlayIntro();
+        }
+
+        private int GetCatsRemaining()
+        {
+            return board == null ? 0 : Mathf.Max(0, board.Size - board.RevealedCatCount());
+        }
+
+        private int GetRetryStartingCatCount()
+        {
+            if (!GameConstants.DynamicDifficultyAdjustment || board == null)
+            {
+                return 0;
+            }
+
+            int authoredStartingCats = board.Level.LockedCats.Length;
+            int adjustedStartingCats = authoredStartingCats + currentLevelFailureCount;
+            return Mathf.Min(
+                board.Size,
+                Mathf.Min(GameConstants.MaximumDynamicDifficultyRevealedCats, adjustedStartingCats));
         }
 
         /// <summary>On Android, the extra life is gated behind an actual completed rewarded ad -

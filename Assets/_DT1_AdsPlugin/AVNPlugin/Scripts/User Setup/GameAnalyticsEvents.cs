@@ -48,13 +48,14 @@ public static class GameAnalyticsEvents
     //---── Tutorial ──────────────────────────────────────────────────────────────
 
     /// <summary>One event per tutorial step as it's reached (stepNo 1-6: first cat click, first rule
-    /// play, second cat click, second rule play, third cat click, third rule play) - fired when the
-    /// step starts, not when it's completed.</summary>
-    public static void TutorialAnalysis(int stepNo)
+    /// play, second cat click, second rule play, third cat click, third rule play). The analytics level
+    /// distinguishes tutorial board 0 from tutorial board 1 while preserving the existing Started field.</summary>
+    public static void TutorialAnalysis(int tutorialLevelNo, int stepNo)
     {
         var payload = new Dictionary<string, string>
         {
             { "Started", stepNo.ToString() },
+            { "LEVEL_NUMBER", tutorialLevelNo.ToString() },
         };
 
         AVNPlugin.DTInstance?.SendCustomGameEvent("TUTORIAL_ANALYSIS", payload, true, true);

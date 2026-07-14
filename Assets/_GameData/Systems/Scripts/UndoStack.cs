@@ -8,13 +8,15 @@ namespace Meowdoku
         public readonly int Column;
         public readonly CellMark Mark;
         public readonly bool Revealed;
+        public readonly bool PenalizedMiss;
 
-        public CellSnapshot(int row, int column, CellMark mark, bool revealed)
+        public CellSnapshot(int row, int column, CellMark mark, bool revealed, bool penalizedMiss)
         {
             Row = row;
             Column = column;
             Mark = mark;
             Revealed = revealed;
+            PenalizedMiss = penalizedMiss;
         }
     }
 
@@ -51,7 +53,12 @@ namespace Meowdoku
             {
                 for (int column = 0; column < board.Size; column++)
                 {
-                    cells[i++] = new CellSnapshot(row, column, board.GetMark(row, column), board.IsRevealed(row, column));
+                    cells[i++] = new CellSnapshot(
+                        row,
+                        column,
+                        board.GetMark(row, column),
+                        board.IsRevealed(row, column),
+                        board.IsPenalizedMiss(row, column));
                 }
             }
 
@@ -87,7 +94,12 @@ namespace Meowdoku
             board.ClearCellsForUndo();
             foreach (CellSnapshot cell in snapshot.Cells)
             {
-                board.SetCellStateForUndo(cell.Row, cell.Column, cell.Mark, cell.Revealed);
+                board.SetCellStateForUndo(
+                    cell.Row,
+                    cell.Column,
+                    cell.Mark,
+                    cell.Revealed,
+                    cell.PenalizedMiss);
             }
         }
 

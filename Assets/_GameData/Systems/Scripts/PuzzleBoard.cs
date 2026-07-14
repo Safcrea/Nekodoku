@@ -10,6 +10,7 @@ namespace Meowdoku
         private readonly bool[,] revealed;
         private readonly bool[,] solutionCats;
         private readonly bool[,] lockedCats;
+        private readonly bool[,] penalizedMisses;
 
         private int bonusHearts;
 
@@ -31,6 +32,7 @@ namespace Meowdoku
             revealed = new bool[Size, Size];
             solutionCats = new bool[Size, Size];
             lockedCats = new bool[Size, Size];
+            penalizedMisses = new bool[Size, Size];
             foreach (Coord coord in Level.Solution)
             {
                 if (Level.Contains(coord.Row, coord.Column))
@@ -50,9 +52,14 @@ namespace Meowdoku
             Clear();
         }
 
-        public void Clear()
+        /// <summary>Starts a fresh attempt. Level-authored locked cats are always restored, then
+        /// additional solution cats are revealed in level order until the requested minimum is met.
+        /// This makes retry assistance part of the initial board state without changing level data.</summary>
+        public void Clear(int minimumRevealedCatCount = 0)
         {
             ClearCellsForUndo();
+
+            int revealedCatCount = 0;
 
             for (int row = 0; row < Size; row++)
             {
@@ -62,7 +69,20 @@ namespace Meowdoku
                     {
                         revealed[row, column] = true;
                         marks[row, column] = CellMark.Cat;
+                        revealedCatCount++;
                     }
+                }
+            }
+
+            int targetRevealedCatCount = Math.Min(Size, Math.Max(0, minimumRevealedCatCount));
+            for (int i = 0; i < Level.Solution.Length && revealedCatCount < targetRevealedCatCount; i++)
+            {
+                Coord coord = Level.Solution[i];
+                if (!revealed[coord.Row, coord.Column])
+                {
+                    revealed[coord.Row, coord.Column] = true;
+                    marks[coord.Row, coord.Column] = CellMark.Cat;
+                    revealedCatCount++;
                 }
             }
 
@@ -103,6 +123,11 @@ namespace Meowdoku
         public bool HasRevealedMiss(int row, int column)
         {
             return IsRevealed(row, column) && !HasHiddenCat(row, column);
+        }
+
+        public bool IsPenalizedMiss(int row, int column)
+        {
+            return Contains(row, column) && penalizedMisses[row, column];
         }
 
         public bool HasHiddenCat(int row, int column)
@@ -184,7 +209,7 @@ namespace Meowdoku
             return changed;
         }
 
-        public CommitResult CommitCat(int row, int column)
+        public CommitResult CommitCat(int row, int column, bool penalizeWrongGuess = true)
         {
             if (!IsActiveCell(row, column) || IsFailed || revealed[row, column])
             {
@@ -195,10 +220,12 @@ namespace Meowdoku
             if (solutionCats[row, column])
             {
                 marks[row, column] = CellMark.Cat;
+                penalizedMisses[row, column] = false;
                 return CommitResult.Correct;
             }
 
             marks[row, column] = CellMark.Empty;
+            penalizedMisses[row, column] = penalizeWrongGuess;
             RecalculateMistakes();
             return CommitResult.Wrong;
         }
@@ -392,13 +419,19 @@ namespace Meowdoku
                 {
                     marks[row, column] = CellMark.Empty;
                     revealed[row, column] = false;
+                    penalizedMisses[row, column] = false;
                 }
             }
 
             MistakeCount = 0;
         }
 
-        public void SetCellStateForUndo(int row, int column, CellMark mark, bool isRevealed)
+        public void SetCellStateForUndo(
+            int row,
+            int column,
+            CellMark mark,
+            bool isRevealed,
+            bool isPenalizedMiss)
         {
             if (!Contains(row, column))
             {
@@ -407,6 +440,7 @@ namespace Meowdoku
 
             marks[row, column] = mark;
             revealed[row, column] = isRevealed;
+            penalizedMisses[row, column] = isPenalizedMiss;
             RecalculateMistakes();
         }
 
@@ -427,7 +461,7 @@ namespace Meowdoku
             {
                 for (int column = 0; column < Size; column++)
                 {
-                    if (revealed[row, column] && !solutionCats[row, column])
+                    if (revealed[row, column] && !solutionCats[row, column] && penalizedMisses[row, column])
                     {
                         mistakes++;
                     }
