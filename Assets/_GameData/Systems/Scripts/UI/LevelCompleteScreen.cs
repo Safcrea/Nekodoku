@@ -11,7 +11,8 @@ namespace Meowdoku
     /// <summary>
     /// The win popup: the bucket reveals its cat slots first (<see cref="LevelCompleteBucket"/>),
     /// then the panel/label/button pop in, a Text Animator-driven "Level Complete" message, a
-    /// star rating that pops in on top of its (always-visible, Editor-authored) black bases -
+    /// star rating that pops in after the screen fade completes, on top of its
+    /// (always-visible, Editor-authored) black bases -
     /// one star per heart remaining - and a VFX burst (a plain <see cref="ParticleSystem"/>
     /// reference - no procedural VFX here) all play once the bucket sequence finishes. The next
     /// button settles into a subtle idle pulse once it's fully faded in, so it keeps drawing the
@@ -92,7 +93,6 @@ namespace Meowdoku
             if (winTypewriter != null)
             {
                 winTypewriter.onTextShowed.AddListener(PlayWinVfx);
-                winTypewriter.onTextShowed.AddListener(() => PlayStarsAnimation(pendingStarsEarned));
             }
         }
 
@@ -169,6 +169,11 @@ namespace Meowdoku
                 panelSequence.Insert(0f, bgCanvasGroup.DOFade(1f, PopSeconds));
             }
             panelSequence.InsertCallback(0f, () => PopScale(winPanelSpring, Vector3.one, panelPopScaleImpulse));
+
+            // Let the complete screen become fully visible before the earned fills start popping.
+            panelSequence.InsertCallback(
+                PopSeconds + StaggerSeconds,
+                () => PlayStarsAnimation(pendingStarsEarned));
 
             panelSequence.Insert(StaggerSeconds, winLabelCanvasGroup.DOFade(1f, PopSeconds * 0.6f));
             panelSequence.Insert(StaggerSeconds, winLabel.DOScale(1f, PopSeconds * 0.6f).SetEase(Ease.OutBack));
